@@ -53,6 +53,9 @@ const Customer = () => {
   const [isModalChooseFile, setIsModalChooseFile] = useState(false);
   const [taxCode, setTaxCode] = useState("");
   const [listKH, setListKH] = useState([]);
+  const [isCreateUser, setIsCreateUser] = useState(false);
+  const [listKHChuaTaoTK, setlistKHChuaTaoTK] = useState([]);
+  const [startLocal, setStartLocal] = useState(0);
 
   useEffect(() => {
     const taxCode = localStorage.getItem("login");
@@ -61,38 +64,41 @@ const Customer = () => {
       setTaxCode(taxCode);
     }
   }, []);
-  const getDataKH = async (taxCode) => {
+  const getDataKH = async (taxCode, start) => {
     setIsloading(true);
-    const listKHResponse = await GetDmkh(taxCode);
-    if (listKHResponse.data.data.length > 0) {
-      // Lọc những phần tử có date_new từ năm 2020 trở đi
-      const list_su_dung_null = listKHResponse.data.data.filter((e) => {
-        const date = new Date(e.date_new);
-        return date.getFullYear() > 2020;
-      });
 
+    const listKHResponse = await GetDmkh(taxCode, start);
+    if (listKHResponse.data.data.length > 0) {
       // Loại bỏ phần tử trùng lặp dựa trên một thuộc tính nhất định, ví dụ như 'taxCode'
       const uniqueList = [];
-      const seen = new Set();
+      const listKHData = [...listKHResponse.data.data];
+      const seen = new Map();
 
-      // listKHResponse.data.data.forEach((item) => {
-      //   if (!seen.has(item.ma_dt)) {
-      //     // Thay 'taxCode' bằng thuộc tính bạn muốn kiểm tra trùng lặp
-      //     seen.add(item.ma_dt);
-      //     uniqueList.push(item);
-      //   }
-      // });
+      const uniqueListKH = listKHData.filter((item) => {
+        if (!seen.has(item.ma_dt)) {
+          seen.set(item.ma_dt, true);
+          return true;
+        }
+        return false;
+      });
+      console.log("🚀 ~ uniqueA ~ uniqueA:", uniqueListKH);
+
+      console.log(uniqueListKH);
       setIsloading(false);
-
-      setListKH(list_su_dung_null);
+      setlistKHChuaTaoTK([]);
+      setListKH(uniqueListKH);
+    } else {
+      setListKH([]);
+      setIsloading(false);
     }
   };
 
-  const getUser = async () => {
+  const handleGetUser = async () => {
     setIsloading(true);
     const newFilteredList = [];
 
     // Giả sử uniqueList chứa danh sách ma_dt đã lọc từ getDataKH
+    console.log("🚀 ~ handleGetUser ~ listKH:", listKH);
     for (const item of listKH) {
       const result = await GetUserTracuu(item.ma_dt, taxCode);
 
@@ -100,19 +106,34 @@ const Customer = () => {
         newFilteredList.push(item);
       }
     }
+    console.log("🚀 ~ getUser ~ newFilteredList:", newFilteredList);
 
-    setListKH(newFilteredList); // Cập nhật danh sách mới sau khi lọc
+    setlistKHChuaTaoTK(newFilteredList); // Cập nhật danh sách mới sau khi lọc
     setIsloading(false);
+  };
+
+  const handleCreateUser = () => {
+    // const ListUserToCreate = new Set(listKHChuaTaoTK.map((item) => item.ma_dt));
+
+    // localStorage.setItem(
+    //   "listUserToCreate",
+    //   JSON.stringify(Array.from(ListUserToCreate))
+    // );
+    setIsCreateUser(true);
+    localStorage.setItem("start", Number(startLocal) + 300);
+    setStartLocal(startLocal + 300);
   };
 
   useEffect(() => {
     const taxCode = localStorage.getItem("login");
+    const start = localStorage.getItem("start");
     if (taxCode) {
-      getDataKH(taxCode);
+      getDataKH(taxCode, start || 0);
     } else {
       navigate("/");
     }
-  }, []);
+  }, [startLocal]);
+
   const handleExportCustomer = () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Customers");
@@ -216,9 +237,10 @@ const Customer = () => {
         maxHeight: "10px",
       }}
     >
-      <div className="gird-layout wide ">
-        <style>
-          {`
+      {listKH && (
+        <div className="gird-layout wide ">
+          <style>
+            {`
                           ::-webkit-scrollbar {
                             width: 5px;
                             height:5px
@@ -231,15 +253,15 @@ const Customer = () => {
                             background-color: transparent; 
                           }
                         `}
-        </style>
-        {/* <ToastContainer autoClose={2000} hideProgressBar /> */}
-        {/* <Modal
+          </style>
+          {/* <ToastContainer autoClose={2000} hideProgressBar /> */}
+          {/* <Modal
           modal={modal}
           setModal={setModal}
           editCustomerData={editCustomerData}
           setEditCustomerData={setEditCustomerData}
         /> */}
-        {/* <ModalAssignService
+          {/* <ModalAssignService
           setidCus={setidCus}
           idCus={idCus}
           modalAssign={modalAssign}
@@ -247,64 +269,70 @@ const Customer = () => {
           editCustomerData={editCustomerData}
           setEditCustomerData={setEditCustomerData}
         /> */}
-        {/* <ModalChooseFile
+          {/* <ModalChooseFile
           getCustomer={getCustomer}
           isModalChooseFile={isModalChooseFile}
           setIsModalChooseFile={setIsModalChooseFile}
         /> */}
-        <div className="col-12">
-          <MaterialReactTable
-            muiTablePaperProps={{
-              sx: {
-                flex: "1 1 0",
-                display: "flex",
-                "flex-flow": "column",
-              },
-            }}
-            enableSorting={true}
-            enableGlobalFilter={true}
-            enableColumnFilters={false}
-            initialState={{
-              columnPinning: { right: ["assignService"] },
-              pagination: { pageSize: 300 },
-            }} //pin email column to left by default
-            state={{ isLoading: isLoading }}
-            muiTableBodyRowProps={({ row }) => ({
-              // onClick: (event) => handleRowClick(row),
-              className:
-                getIDRow === row.getValue("ma_dt") ? "selected-row" : "",
-              sx: {
-                cursor: "pointer",
-              },
-            })}
-            enableStickyHeader={true}
-            enableStickyFooter={true}
-            muiTablePaginationProps={{
-              labelDisplayedRows: labelDisplayedRowss,
-            }}
-            muiPaginationProps={{
-              rowsPerPageOptions: [300, 500, 1000],
-            }}
-            enablePagination={true}
-            columns={columns}
-            data={listKH}
-            renderTopToolbarCustomActions={() => (
-              <Box className="col">
-                <Button className="btn_add" style={{}} onClick={getUser}>
-                  <span
-                    style={{ paddingRight: "5px" }}
-                    className="fa-solid fa-plus"
-                  ></span>
-                  <span style={{ paddingLeft: "5px" }}>Users chưa tạo </span>
-                </Button>
-                <Button className="btn_edit">
-                  <span
-                    style={{ paddingRight: "5px" }}
-                    className="fa-solid fa-pencil"
-                  ></span>
-                  <span style={{ paddingLeft: "5px" }}>Sửa</span>
-                </Button>
-                {/* <Button
+          <div className="col-12">
+            <MaterialReactTable
+              muiTablePaperProps={{
+                sx: {
+                  flex: "1 1 0",
+                  display: "flex",
+                  "flex-flow": "column",
+                },
+              }}
+              enableSorting={true}
+              enableGlobalFilter={true}
+              enableColumnFilters={false}
+              initialState={{
+                columnPinning: { right: ["assignService"] },
+                pagination: { pageSize: 300 },
+              }} //pin email column to left by default
+              state={{ isLoading: isLoading }}
+              muiTableBodyRowProps={({ row }) => ({
+                // onClick: (event) => handleRowClick(row),
+                className:
+                  getIDRow === row.getValue("ma_dt") ? "selected-row" : "",
+                sx: {
+                  cursor: "pointer",
+                },
+              })}
+              enableStickyHeader={true}
+              enableStickyFooter={true}
+              muiTablePaginationProps={{
+                labelDisplayedRows: labelDisplayedRowss,
+              }}
+              muiPaginationProps={{
+                rowsPerPageOptions: [300, 500, 1000],
+              }}
+              enablePagination={true}
+              columns={columns}
+              data={listKHChuaTaoTK.length > 0 ? listKHChuaTaoTK : listKH}
+              renderTopToolbarCustomActions={() => (
+                <Box className="col">
+                  <Button
+                    className="btn_add"
+                    style={{}}
+                    onClick={handleGetUser}
+                  >
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-plus"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>
+                      Lấy danh sách user chưa tạo
+                    </span>
+                  </Button>
+                  <Button className="btn_edit">
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-pencil"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>Sửa</span>
+                  </Button>
+                  {/* <Button
                   className="btn_remove"
                   // onClick={(e) => handleDeleteCustomer(e)}
                 >
@@ -315,28 +343,38 @@ const Customer = () => {
                   <span style={{ paddingLeft: "5px" }}>Xoá</span>
                 </Button> */}
 
-                <Button
-                  className="btn_import"
-                  onClick={() => setIsModalChooseFile(!isModalChooseFile)}
-                >
-                  <span
-                    style={{ paddingRight: "5px" }}
-                    className="fa-solid fa-file-import"
-                  ></span>
-                  <span style={{ paddingLeft: "5px" }}>Nhập Excel</span>
-                </Button>
-                <Button onClick={handleExportCustomer} className="btn_export">
-                  <span
-                    style={{ paddingRight: "5px" }}
-                    className="fa-solid fa-file-excel"
-                  ></span>
-                  <span style={{ paddingLeft: "5px" }}>Xuất Excel</span>
-                </Button>
-              </Box>
-            )}
-          />
+                  <Button
+                    className="btn_import"
+                    onClick={() => setIsModalChooseFile(!isModalChooseFile)}
+                  >
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-file-import"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>Nhập Excel</span>
+                  </Button>
+                  <Button onClick={handleExportCustomer} className="btn_export">
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-file-excel"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>Xuất Excel</span>
+                  </Button>
+                  <Button onClick={handleCreateUser} className="btn_export">
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-file-excel"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>
+                      Tạo user hàng loạt
+                    </span>
+                  </Button>
+                </Box>
+              )}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

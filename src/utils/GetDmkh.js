@@ -1,12 +1,12 @@
 import React from "react";
 
-async function GetDmkh(taxCode) {
+async function GetDmkh(taxCode, start) {
   let sanitizedTaxCode = taxCode.replace(/-/g, "");
   const url = `https://${sanitizedTaxCode}.minvoice.com.vn/api/System/GetDataByWindowNo1`;
   const body = {
     window_id: "WIN00009",
-    start: 0,
-    count: 2000,
+    start: start,
+    count: 300,
   };
 
   try {
