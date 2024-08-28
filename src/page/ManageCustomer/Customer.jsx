@@ -1,23 +1,15 @@
-import React, { useEffect, useMemo, useState } from "react";
 import { MaterialReactTable } from "material-react-table";
-// import { styleError, styleSuccess } from "../../Components/ToastNotifyStyle";
-
-import "./customer.scss";
-import "../dashboard.scss";
+import React, { useEffect, useMemo, useState } from "react";
 import { Box, Button } from "@mui/material";
-
-// import axios from "axios";
-// import Modal from "../../Components/Modal";
-// import ModalAssignService from "../../Components/ModalAssignService";
+import "../dashboard.scss";
+import "./customer.scss";
 import { useImperativeDisableScroll } from "../../utils/configScrollbar";
-// import { ToastContainer, toast } from "react-toastify";
 import ExcelJS from "exceljs";
-// import ToastNotify from "../../Components/ToastNotify";
-// import ModalChooseFile from "../../Components/ModalChooseFile";
-import Cookies from "js-cookie";
 import { useNavigate } from "react-router-dom";
 import GetDmkh from "../../utils/GetDmkh";
 import GetUserTracuu from "../../utils/GetUserTracuu";
+import CreateUser from "../../utils/createUser";
+import NotifyMessage from "../../Components/NotiMessage";
 
 const Customer = () => {
   //hidden scroll
@@ -44,8 +36,6 @@ const Customer = () => {
   const [idCus, setidCus] = useState(0);
   const [editCustomerData, setEditCustomerData] = useState(null);
 
-  //datacustomer for edit
-
   //active modal
   const [modal, setModal] = useState(false);
   const [modalAssign, setModalAssign] = useState(false);
@@ -53,24 +43,31 @@ const Customer = () => {
   const [isModalChooseFile, setIsModalChooseFile] = useState(false);
   const [taxCode, setTaxCode] = useState("");
   const [listKH, setListKH] = useState([]);
+  console.log("🚀 ~ Customer ~ listKH:", listKH);
   const [isCreateUser, setIsCreateUser] = useState(false);
   const [listKHChuaTaoTK, setlistKHChuaTaoTK] = useState([]);
   const [startLocal, setStartLocal] = useState(0);
+  const [isOpenMessage, setIsOpenMessage] = useState(false);
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const taxCode = localStorage.getItem("login");
-
+    const start = localStorage.getItem(taxCode);
     if (taxCode) {
       setTaxCode(taxCode);
+      getDataKH(taxCode, start || 0);
+    } else {
+      navigate("/");
     }
-  }, []);
+  }, [startLocal, taxCode, navigate]);
+
   const getDataKH = async (taxCode, start) => {
     setIsloading(true);
 
     const listKHResponse = await GetDmkh(taxCode, start);
+    console.log("🚀 ~ getDataKH ~ listKHResponse:", listKHResponse.data.data);
     if (listKHResponse.data.data.length > 0) {
       // Loại bỏ phần tử trùng lặp dựa trên một thuộc tính nhất định, ví dụ như 'taxCode'
-      const uniqueList = [];
       const listKHData = [...listKHResponse.data.data];
       const seen = new Map();
 
@@ -81,7 +78,6 @@ const Customer = () => {
         }
         return false;
       });
-      console.log("🚀 ~ uniqueA ~ uniqueA:", uniqueListKH);
 
       console.log(uniqueListKH);
       setIsloading(false);
@@ -108,31 +104,49 @@ const Customer = () => {
     }
     console.log("🚀 ~ getUser ~ newFilteredList:", newFilteredList);
 
+    if (newFilteredList.length === 0) {
+      const startIndex = listKH.length >= 300 ? 300 : listKH.length;
+      localStorage.setItem(taxCode, Number(startLocal) + startIndex);
+      setStartLocal(startLocal + startIndex);
+    }
     setlistKHChuaTaoTK(newFilteredList); // Cập nhật danh sách mới sau khi lọc
     setIsloading(false);
   };
 
-  const handleCreateUser = () => {
-    // const ListUserToCreate = new Set(listKHChuaTaoTK.map((item) => item.ma_dt));
+  const handleCreateUser = async () => {
+    if (listKHChuaTaoTK.length > 0) {
+      let isCreateUser = false;
+      const createUserPromises = listKHChuaTaoTK.map(async (item) => {
+        const userInfo = {
+          mst: taxCode,
+          ma_dt: item.ma_dt,
+          username: item.ma_dt,
+          password: item.ma_dt,
+          email: "",
+        };
+        const result = await CreateUser(taxCode, userInfo);
+        if (result.data.error) {
+          console.log("🚀 ~ handleCreateUser ~ result.error:", result.error);
+          return false;
+        } else {
+          console.log(result.data);
+          return true;
+        }
+      });
 
-    // localStorage.setItem(
-    //   "listUserToCreate",
-    //   JSON.stringify(Array.from(ListUserToCreate))
-    // );
-    setIsCreateUser(true);
-    localStorage.setItem("start", Number(startLocal) + 300);
-    setStartLocal(startLocal + 300);
-  };
+      const results = await Promise.all(createUserPromises);
+      isCreateUser = results.some((result) => result === true);
 
-  useEffect(() => {
-    const taxCode = localStorage.getItem("login");
-    const start = localStorage.getItem("start");
-    if (taxCode) {
-      getDataKH(taxCode, start || 0);
-    } else {
-      navigate("/");
+      if (isCreateUser) {
+        setIsOpenMessage(true);
+        setIsCreateUser(true);
+        const startIndex = listKH.length >= 300 ? 300 : listKH.length;
+        localStorage.setItem(taxCode, Number(startLocal) + startIndex);
+        setStartLocal(startLocal + startIndex);
+        setlistKHChuaTaoTK([]);
+      }
     }
-  }, [startLocal]);
+  };
 
   const handleExportCustomer = () => {
     const workbook = new ExcelJS.Workbook();
@@ -316,13 +330,14 @@ const Customer = () => {
                     className="btn_add"
                     style={{}}
                     onClick={handleGetUser}
+                    disabled={listKH.length === 0}
                   >
                     <span
                       style={{ paddingRight: "5px" }}
                       className="fa-solid fa-plus"
                     ></span>
                     <span style={{ paddingLeft: "5px" }}>
-                      Lấy danh sách user chưa tạo
+                      Lọc user chưa tạo TK
                     </span>
                   </Button>
                   <Button className="btn_edit">
@@ -360,21 +375,28 @@ const Customer = () => {
                     ></span>
                     <span style={{ paddingLeft: "5px" }}>Xuất Excel</span>
                   </Button>
-                  <Button onClick={handleCreateUser} className="btn_export">
-                    <span
-                      style={{ paddingRight: "5px" }}
-                      className="fa-solid fa-file-excel"
-                    ></span>
-                    <span style={{ paddingLeft: "5px" }}>
-                      Tạo user hàng loạt
-                    </span>
-                  </Button>
+                  {listKHChuaTaoTK.length > 0 && (
+                    <Button onClick={handleCreateUser} className="btn_export">
+                      <span
+                        style={{ paddingRight: "5px" }}
+                        className="fa-solid fa-file-excel"
+                      ></span>
+                      <span style={{ paddingLeft: "5px" }}>
+                        Tạo {listKHChuaTaoTK.length} TK user
+                      </span>
+                    </Button>
+                  )}
                 </Box>
               )}
             />
           </div>
         </div>
       )}
+      <NotifyMessage
+        open={isOpenMessage}
+        message="Tạo user tra cứu thành công"
+        setOpen={setIsOpenMessage}
+      />
     </div>
   );
 };

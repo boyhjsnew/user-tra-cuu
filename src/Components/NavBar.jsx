@@ -12,6 +12,11 @@ const NavBar = () => {
 
   useState(() => {});
 
+  const handleLogout = () => {
+    localStorage.removeItem("login");
+    navigate("/");
+  };
+
   return (
     <div
       // layout navbar
@@ -109,6 +114,26 @@ const NavBar = () => {
             </Link>
           </li> */}
         </ul>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <button
+          type="button"
+          style={{
+            padding: "0.75rem",
+            border: "1px solid #DEE2E6",
+            cursor: "pointer",
+            borderRadius: "5px",
+          }}
+          onClick={handleLogout}
+        >
+          Đăng xuất
+        </button>
       </div>
       {/* link contact */}
       <div
