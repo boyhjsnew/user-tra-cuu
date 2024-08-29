@@ -9,10 +9,7 @@ import { styleError, styleSuccess } from "../Components/ToastNotifyStyle";
 import "react-toastify/dist/ReactToastify.css";
 
 const Login = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
   const [taxCode, setTaxCode] = useState("");
-  const [isCheck, setIsCheck] = useState(false);
 
   const navigate = useNavigate();
 
@@ -33,7 +30,8 @@ const Login = () => {
         );
         navigate("/customers");
       } else {
-        const errorMessage = dataLogin?.data?.message || "Đăng nhập thất bại";
+        const errorMessage =
+          dataLogin?.data?.message || "Mã số thuế không tồn tại";
         toast.error(<ToastNotify status={-1} message={errorMessage} />, {
           style: styleError,
         });
@@ -98,84 +96,12 @@ const Login = () => {
               Mã số thuế
             </label>
             <input
-              id="username"
+              id="taxCode"
               className="input-login mb-3"
               type="text"
-              name="uname"
+              name="taxCode"
               onChange={(e) => setTaxCode(e.target.value)}
             />
-            <label className="block mb-2 fz-15 " htmlFor="uname">
-              Tài khoản
-            </label>
-            <input
-              id="username"
-              className="input-login mb-3"
-              type="text"
-              name="uname"
-              onChange={(e) => setUsername(e.target.value)}
-            />
-            <label className="block  lbl-text mb-2 fz-15" htmlFor="uname">
-              Mật khẩu
-            </label>
-            <div style={{}}>
-              <input
-                id="password"
-                className="input-login mb-3"
-                type={isCheck ? "text" : "password"}
-                name="pwrd"
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              {/* them easye passs */}
-            </div>
-            <div
-              style={{
-                height: "1.5rem",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <div>
-                {/* quen mat khau */}
-                <div>
-                  <form
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <input
-                      onClick={() => setIsCheck(!isCheck)}
-                      checked={isCheck}
-                      type="checkbox"
-                      id="cb-mind"
-                      name="mindAcc"
-                      className="checkbox-input"
-                    />
-                    <label
-                      className="lbl-checkbox fz-15"
-                      style={{ padding: "8px" }}
-                      htmlFor="cb-mind"
-                    >
-                      Hiện mật khẩu
-                    </label>
-                  </form>
-                </div>
-              </div>
-              {/* <Link>
-                <span
-                  style={{
-                    color: "#3b82f6",
-                    cursor: "pointer",
-                    fontWeight: "500",
-                    fontSize: "15px",
-                  }}
-                >
-                  Quên mật khẩu?
-                </span>
-              </Link> */}
-            </div>
           </form>
           <button
             type="submit"
@@ -191,7 +117,7 @@ const Login = () => {
                 textDecoration: "none",
               }}
             >
-              Đăng nhập
+              Xác nhận
             </Link>
           </button>
         </div>
