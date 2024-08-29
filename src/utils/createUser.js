@@ -1,5 +1,4 @@
 async function CreateUser(taxCode, userInfo) {
-  console.log("🚀 ~ CreateUser ~ userInfo:", userInfo);
   let sanitizedTaxCode = taxCode.replace(/-/g, "");
   const url = `https://${sanitizedTaxCode}.minvoice.com.vn/api/Invoice/CreateUser_tracuu `;
 

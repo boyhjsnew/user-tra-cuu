@@ -6,7 +6,7 @@ async function GetDmkh(taxCode, start) {
   const body = {
     window_id: "WIN00009",
     start: start,
-    count: 300,
+    count: 1000,
   };
 
   try {

@@ -10,6 +10,7 @@ import GetDmkh from "../../utils/GetDmkh";
 import GetUserTracuu from "../../utils/GetUserTracuu";
 import CreateUser from "../../utils/createUser";
 import NotifyMessage from "../../Components/NotiMessage";
+import PopupDialog from "../../Components/PopupDialog";
 
 const Customer = () => {
   //hidden scroll
@@ -43,29 +44,20 @@ const Customer = () => {
   const [isModalChooseFile, setIsModalChooseFile] = useState(false);
   const [taxCode, setTaxCode] = useState("");
   const [listKH, setListKH] = useState([]);
-  console.log("🚀 ~ Customer ~ listKH:", listKH);
   const [isCreateUser, setIsCreateUser] = useState(false);
   const [listKHChuaTaoTK, setlistKHChuaTaoTK] = useState([]);
   const [startLocal, setStartLocal] = useState(0);
   const [isOpenMessage, setIsOpenMessage] = useState(false);
   const [message, setMessage] = useState("");
+  const [isOpenPopup, setIsOpenPopup] = useState(false);
+  const [isConfirmCreate, setIsConfirmCreate] = useState(false);
+  const [isLoadingCreateUser, setIsloadingCreateUser] = useState(false);
 
-  useEffect(() => {
-    const taxCode = localStorage.getItem("login");
-    const start = localStorage.getItem(taxCode);
-    if (taxCode) {
-      setTaxCode(taxCode);
-      getDataKH(taxCode, start || 0);
-    } else {
-      navigate("/");
-    }
-  }, [startLocal, taxCode, navigate]);
-
+  // Lấy danh sách user từ API
   const getDataKH = async (taxCode, start) => {
     setIsloading(true);
 
     const listKHResponse = await GetDmkh(taxCode, start);
-    console.log("🚀 ~ getDataKH ~ listKHResponse:", listKHResponse.data.data);
     if (listKHResponse.data.data.length > 0) {
       // Loại bỏ phần tử trùng lặp dựa trên một thuộc tính nhất định, ví dụ như 'taxCode'
       const listKHData = [...listKHResponse.data.data];
@@ -79,7 +71,6 @@ const Customer = () => {
         return false;
       });
 
-      console.log(uniqueListKH);
       setIsloading(false);
       setlistKHChuaTaoTK([]);
       setListKH(uniqueListKH);
@@ -89,12 +80,23 @@ const Customer = () => {
     }
   };
 
+  useEffect(() => {
+    const taxCode = localStorage.getItem("login");
+    const start = localStorage.getItem(taxCode);
+    if (taxCode) {
+      setTaxCode(taxCode);
+      getDataKH(taxCode, start || 0);
+    } else {
+      navigate("/");
+    }
+  }, [startLocal, taxCode, navigate]);
+
+  //Lấy danh sách user chưa có tài khoản tra cứu
   const handleGetUser = async () => {
     setIsloading(true);
     const newFilteredList = [];
 
     // Giả sử uniqueList chứa danh sách ma_dt đã lọc từ getDataKH
-    console.log("🚀 ~ handleGetUser ~ listKH:", listKH);
     for (const item of listKH) {
       const result = await GetUserTracuu(item.ma_dt, taxCode);
 
@@ -102,10 +104,9 @@ const Customer = () => {
         newFilteredList.push(item);
       }
     }
-    console.log("🚀 ~ getUser ~ newFilteredList:", newFilteredList);
 
     if (newFilteredList.length === 0) {
-      const startIndex = listKH.length >= 300 ? 300 : listKH.length;
+      const startIndex = listKH.length >= 1000 ? 1000 : listKH.length;
       localStorage.setItem(taxCode, Number(startLocal) + startIndex);
       setStartLocal(startLocal + startIndex);
     }
@@ -113,41 +114,54 @@ const Customer = () => {
     setIsloading(false);
   };
 
+  // show popup khi click vào nút tạo user
   const handleCreateUser = async () => {
-    if (listKHChuaTaoTK.length > 0) {
-      let isCreateUser = false;
-      const createUserPromises = listKHChuaTaoTK.map(async (item) => {
-        const userInfo = {
-          mst: taxCode,
-          ma_dt: item.ma_dt,
-          username: item.ma_dt,
-          password: item.ma_dt,
-          email: "",
-        };
-        const result = await CreateUser(taxCode, userInfo);
-        if (result.data.error) {
-          console.log("🚀 ~ handleCreateUser ~ result.error:", result.error);
-          return false;
-        } else {
-          console.log(result.data);
-          return true;
-        }
-      });
-
-      const results = await Promise.all(createUserPromises);
-      isCreateUser = results.some((result) => result === true);
-
-      if (isCreateUser) {
-        setIsOpenMessage(true);
-        setIsCreateUser(true);
-        const startIndex = listKH.length >= 300 ? 300 : listKH.length;
-        localStorage.setItem(taxCode, Number(startLocal) + startIndex);
-        setStartLocal(startLocal + startIndex);
-        setlistKHChuaTaoTK([]);
-      }
-    }
+    setIsOpenPopup(true);
   };
 
+  // confirm create new user
+  useEffect(() => {
+    if (isConfirmCreate) {
+      const handleCreateNewUser = async () => {
+        setIsloadingCreateUser(true);
+        if (listKHChuaTaoTK.length > 0) {
+          let isCreateNewUser = false;
+          const createUserPromises = listKHChuaTaoTK.map(async (item) => {
+            const userInfo = {
+              mst: taxCode,
+              ma_dt: item.ma_dt,
+              username: item.ma_dt,
+              password: "123456",
+              email: "",
+            };
+            const result = await CreateUser(taxCode, userInfo);
+            if (result.data.error) {
+              return false;
+            } else {
+              return true;
+            }
+          });
+
+          const results = await Promise.all(createUserPromises);
+          isCreateNewUser = results.some((result) => result === true);
+
+          if (isCreateNewUser) {
+            setIsOpenMessage(true);
+            setIsCreateUser(true);
+            const startIndex = listKH.length >= 1000 ? 1000 : listKH.length;
+            localStorage.setItem(taxCode, Number(startLocal) + startIndex);
+            setStartLocal(startLocal + startIndex);
+            setlistKHChuaTaoTK([]);
+            setIsOpenPopup(false);
+          }
+        }
+        setIsloadingCreateUser(false);
+      };
+      handleCreateNewUser();
+    }
+  }, [isConfirmCreate, listKHChuaTaoTK]);
+
+  // tạo file excel với dữ liệu của user
   const handleExportCustomer = () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Customers");
@@ -389,6 +403,15 @@ const Customer = () => {
                 </Box>
               )}
             />
+            <div>
+              <PopupDialog
+                isOpen={isOpenPopup}
+                numberUserNeedToCreate={listKHChuaTaoTK.length}
+                setIsOpen={setIsOpenPopup}
+                setIsConfirm={setIsConfirmCreate}
+                isLoadingCreateUser={isLoadingCreateUser}
+              />
+            </div>
           </div>
         </div>
       )}

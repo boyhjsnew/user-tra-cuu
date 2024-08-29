@@ -20,7 +20,6 @@ async function LoginApp(taxCode, username, password) {
       },
     });
 
-    console.log(response.data);
     return { token: response.data.token };
   } catch (error) {
     console.error("Error:", error);
