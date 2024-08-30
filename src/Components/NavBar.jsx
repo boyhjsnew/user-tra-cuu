@@ -2,9 +2,10 @@
 import React, { useState } from "react";
 import "./NavBar.css";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import ModalMenu from "./ModalMenu";
 
 const NavBar = () => {
-  // const [isModalMenu, setIsModalMenu] = useState(false);
+  const [isModalMenu, setIsModalMenu] = useState(false);
   // const [isModalChangePass, setIsModalChangePass] = useState(false);
   const getLocation = useLocation();
   const navigate = useNavigate();
@@ -119,6 +120,28 @@ const NavBar = () => {
           margin: "15px 15px",
         }}
       ></div>
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-evenly",
+          margin: "15px 15px",
+        }}
+      >
+        <i
+          onClick={() => setIsModalMenu(!isModalMenu)}
+          className=" i-user fa-regular fa-user"
+        ></i>
+
+        {isModalMenu && (
+          <ModalMenu
+          // setIsModalMenu={setIsModalMenu}
+          // isModalChangePass={isModalChangePass}
+          // setIsModalChangePass={setIsModalChangePass}
+          />
+        )}
+      </div>
     </div>
   );
 };
