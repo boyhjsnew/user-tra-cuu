@@ -2,11 +2,12 @@ import React from "react";
 
 async function GetDmkh(taxCode, start) {
   let sanitizedTaxCode = taxCode.replace(/-/g, "");
+
   const url = `https://${sanitizedTaxCode}.minvoice.com.vn/api/System/GetDataByWindowNo1`;
   const body = {
     window_id: "WIN00009",
     start: start,
-    count: 1000,
+    count: sanitizedTaxCode === "0310883796" ? 1000 : 100000,
   };
 
   try {

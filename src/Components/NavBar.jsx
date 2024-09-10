@@ -121,20 +121,7 @@ const NavBar = () => {
           justifyContent: "center",
           alignItems: "center",
         }}
-      >
-        <button
-          type="button"
-          style={{
-            padding: "0.75rem",
-            border: "1px solid #DEE2E6",
-            cursor: "pointer",
-            borderRadius: "5px",
-          }}
-          onClick={handleLogout}
-        >
-          Đăng xuất
-        </button>
-      </div>
+      ></div>
       {/* link contact */}
       <div
         style={{

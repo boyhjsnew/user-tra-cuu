@@ -11,6 +11,13 @@ import GetUserTracuu from "../../utils/GetUserTracuu";
 import CreateUser from "../../utils/createUser";
 import NotifyMessage from "../../Components/NotiMessage";
 import PopupDialog from "../../Components/PopupDialog";
+import ModalChooseFile from "../../Components/ModalChooseFile";
+import ModalCreateUser from "../../Components/ModalCreateUser";
+
+import { ToastContainer, toast } from "react-toastify";
+
+import { styleError, styleSuccess } from "../../Components/ToastNotifyStyle";
+import ToastNotify from "../../Components/ToastNotify";
 
 const Customer = () => {
   //hidden scroll
@@ -32,7 +39,7 @@ const Customer = () => {
   //   }
   // }, [navigate]);
 
-  const [customers, setCustomers] = useState([]);
+  const [currenUser, setCurrentUser] = useState();
   const [getIDRow, setIDRow] = useState(0);
   const [idCus, setidCus] = useState(0);
   const [editCustomerData, setEditCustomerData] = useState(null);
@@ -52,6 +59,7 @@ const Customer = () => {
   const [isOpenPopup, setIsOpenPopup] = useState(false);
   const [isConfirmCreate, setIsConfirmCreate] = useState(false);
   const [isLoadingCreateUser, setIsloadingCreateUser] = useState(false);
+  const [chooseUser, setChooseUser] = useState("");
 
   // Lấy danh sách user từ API
   const getDataKH = async (taxCode, start) => {
@@ -136,8 +144,20 @@ const Customer = () => {
             };
             const result = await CreateUser(taxCode, userInfo);
             if (result.data.error) {
+              toast.error(
+                <ToastNotify status={-1} message={result.data.error} />,
+                {
+                  style: styleError,
+                }
+              );
               return false;
             } else {
+              toast.success(
+                <ToastNotify status={1} message={result.data.ok} />,
+                {
+                  style: styleSuccess,
+                }
+              );
               return true;
             }
           });
@@ -195,8 +215,8 @@ const Customer = () => {
   };
 
   const handleRowClick = (row) => {
-    if (getIDRow === "" || getIDRow !== row.getValue("AccountID")) {
-      setIDRow(row.getValue("AccountID"));
+    if (getIDRow === "" || getIDRow !== row.getValue("ma_dt")) {
+      setIDRow(row.getValue("ma_dt"));
     } else {
       setIDRow("");
     }
@@ -223,11 +243,12 @@ const Customer = () => {
       ),
     },
     {
-      accessorKey: "su_dung",
-      header: "Loại tài khoản",
+      accessorKey: "dia_chi",
+
+      header: "Địa chỉ",
       Cell: ({ row }) => (
         <span className={row.original.ma_dt === getIDRow ? "active" : ""}>
-          {row.original.su_dung}
+          {row.original.dia_chi}
         </span>
       ),
     },
@@ -243,14 +264,16 @@ const Customer = () => {
           className="btn-assign"
           onClick={() => {
             setidCus(row.getValue("ma_dt"));
-            setModalAssign(!modalAssign);
+            setChooseUser(row.original);
+            console.log(row.original);
+            setModal(!modal);
           }}
         >
           <span
             className="fa-solid fa-plus"
             style={{ paddingRight: "5px" }}
           ></span>
-          <span className="p-component">Chọn dịch vụ</span>
+          <span className="p-component">Tạo tra cứu</span>
         </button>
       ),
     },
@@ -265,6 +288,13 @@ const Customer = () => {
         maxHeight: "10px",
       }}
     >
+      <ModalCreateUser
+        modal={modal}
+        chooseUser={chooseUser}
+        setModal={setModal}
+        editCustomerData={editCustomerData}
+        setEditCustomerData={setEditCustomerData}
+      />
       {listKH && (
         <div className="gird-layout wide ">
           <style>
@@ -282,7 +312,7 @@ const Customer = () => {
                           }
                         `}
           </style>
-          {/* <ToastContainer autoClose={2000} hideProgressBar /> */}
+          <ToastContainer autoClose={2000} hideProgressBar />
           {/* <Modal
           modal={modal}
           setModal={setModal}
@@ -297,11 +327,11 @@ const Customer = () => {
           editCustomerData={editCustomerData}
           setEditCustomerData={setEditCustomerData}
         /> */}
-          {/* <ModalChooseFile
-          getCustomer={getCustomer}
-          isModalChooseFile={isModalChooseFile}
-          setIsModalChooseFile={setIsModalChooseFile}
-        /> */}
+          <ModalChooseFile
+            // getCustomer={getCustomer}
+            isModalChooseFile={isModalChooseFile}
+            setIsModalChooseFile={setIsModalChooseFile}
+          />
           <div className="col-12">
             <MaterialReactTable
               muiTablePaperProps={{
@@ -311,6 +341,7 @@ const Customer = () => {
                   "flex-flow": "column",
                 },
               }}
+              onSearchChange={() => console.log("tetx")}
               enableSorting={true}
               enableGlobalFilter={true}
               enableColumnFilters={false}
@@ -348,19 +379,19 @@ const Customer = () => {
                   >
                     <span
                       style={{ paddingRight: "5px" }}
-                      className="fa-solid fa-plus"
+                      className="fa-solid fa-filter"
                     ></span>
                     <span style={{ paddingLeft: "5px" }}>
-                      Lọc user chưa tạo TK
+                      Lọc user chưa tạo
                     </span>
                   </Button>
-                  <Button className="btn_edit">
+                  {/* <Button className="btn_edit">
                     <span
                       style={{ paddingRight: "5px" }}
                       className="fa-solid fa-pencil"
                     ></span>
                     <span style={{ paddingLeft: "5px" }}>Sửa</span>
-                  </Button>
+                  </Button> */}
                   {/* <Button
                   className="btn_remove"
                   // onClick={(e) => handleDeleteCustomer(e)}
@@ -390,13 +421,13 @@ const Customer = () => {
                     <span style={{ paddingLeft: "5px" }}>Xuất Excel</span>
                   </Button>
                   {listKHChuaTaoTK.length > 0 && (
-                    <Button onClick={handleCreateUser} className="btn_export">
+                    <Button onClick={handleCreateUser} className="btn_user">
                       <span
                         style={{ paddingRight: "5px" }}
-                        className="fa-solid fa-file-excel"
+                        className="fa-solid fa-users"
                       ></span>
                       <span style={{ paddingLeft: "5px" }}>
-                        Tạo {listKHChuaTaoTK.length} TK user
+                        Tạo {listKHChuaTaoTK.length} User
                       </span>
                     </Button>
                   )}

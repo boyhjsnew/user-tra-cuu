@@ -39,14 +39,14 @@
   border: 1px solid #aaaa;
 }
 
-.css-1e6y48t-MuiButtonBase-root-MuiButton-root:hover {
-  border: 1px solid #6366f1 !important;
-  font-weight: 200 !important;
-  border-radius: 6px !important;
-  padding: 2px 1.5rem !important;
-  color: #6366f1 !important;
-  text-transform: none !important;
-}
+// .css-1e6y48t-MuiButtonBase-root-MuiButton-root:hover {
+//   border: 1px solid #6366f1 !important;
+//   font-weight: 200 !important;
+//   border-radius: 6px !important;
+//   padding: 2px 1.5rem !important;
+//   color: #6366f1 !important;
+//   text-transform: none !important;
+// }
 .MuiButtonBase-root.MuiButton-root.MuiButton-text.MuiButton-textPrimary.MuiButton-sizeMedium.MuiButton-textSizeMedium.MuiButton-root.MuiButton-text.MuiButton-textPrimary.MuiButton-sizeMedium.MuiButton-textSizeMedium.btn_reload {
   margin-right: 5px !important;
   border: 1px solid #6c757d !important;
@@ -101,6 +101,24 @@
   color: #28a745 !important;
   text-transform: none !important;
 }
+
+.MuiButtonBase-root.MuiButton-root.MuiButton-text.MuiButton-textPrimary.MuiButton-sizeMedium.MuiButton-textSizeMedium.MuiButton-root.MuiButton-text.MuiButton-textPrimary.MuiButton-sizeMedium.MuiButton-textSizeMedium.btn_user {
+  color: #ffffff;
+  background: #6366f1;
+  border: 1px solid #6366f1;
+  padding: 2px 1.5rem !important;
+
+  font-size: 0.8rem;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s,
+    box-shadow 0.2s;
+  border-radius: 6px;
+  text-transform: none !important;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.02), 0 0 2px rgba(0, 0, 0, 0.05),
+    0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
 // .l-12 {
 //   height: 100vh !important;
 // }
@@ -145,12 +163,14 @@
   width: 20px;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: 
-    radial-gradient(farthest-side,#ebdec9 94%,#0000) top/4px 4px no-repeat,
-    conic-gradient(#0000 30%,#ebdec9);
-  -webkit-mask: radial-gradient(farthest-side,#0000 calc(100% - 4px),#000 0);
+  background: radial-gradient(farthest-side, #ebdec9 94%, #0000) top/4px 4px
+      no-repeat,
+    conic-gradient(#0000 30%, #ebdec9);
+  -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - 4px), #000 0);
   animation: l13 1s infinite linear;
 }
-@keyframes l13{ 
-  100%{transform: rotate(1turn)}
+@keyframes l13 {
+  100% {
+    transform: rotate(1turn);
+  }
 }
