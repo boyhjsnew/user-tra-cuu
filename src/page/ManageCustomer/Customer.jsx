@@ -359,6 +359,7 @@ const Customer = () => {
                   cursor: "pointer",
                 },
               })}
+              muiTableContainerProps={{ sx: { maxHeight: "500px" } }}
               enableStickyHeader={true}
               positionPagination="bottom"
               muiTablePaginationProps={{
