@@ -341,6 +341,7 @@ const Customer = () => {
                   "flex-flow": "column",
                 },
               }}
+              enableStickyFooter={true}
               onSearchChange={() => console.log("tetx")}
               enableSorting={true}
               enableGlobalFilter={true}
@@ -359,7 +360,7 @@ const Customer = () => {
                 },
               })}
               enableStickyHeader={true}
-              enableStickyFooter={true}
+              positionPagination="bottom"
               muiTablePaginationProps={{
                 labelDisplayedRows: labelDisplayedRowss,
               }}
