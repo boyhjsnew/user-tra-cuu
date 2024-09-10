@@ -362,7 +362,7 @@ const Customer = () => {
                 },
               })}
               muiTableContainerProps={{
-                sx: { maxHeight: "calc(97vh - 200px)" },
+                sx: { maxHeight: "calc(95vh - 200px)" },
               }}
               positionPagination="bottom"
               muiTablePaginationProps={{
