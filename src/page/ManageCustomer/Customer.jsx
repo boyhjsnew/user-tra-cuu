@@ -359,6 +359,7 @@ const Customer = () => {
                   getIDRow === row.getValue("ma_dt") ? "selected-row" : "",
                 sx: {
                   cursor: "pointer",
+                  height: "8px",
                 },
               })}
               muiTableContainerProps={{
