@@ -341,7 +341,7 @@ const Customer = () => {
                   "flex-flow": "column",
                 },
               }}
-              enableStickyFooter={true}
+              enableStickyFooter
               onSearchChange={() => console.log("tetx")}
               enableSorting={true}
               enableGlobalFilter={true}
@@ -359,8 +359,9 @@ const Customer = () => {
                   cursor: "pointer",
                 },
               })}
-              muiTableContainerProps={{ sx: { maxHeight: "500px" } }}
-              enableStickyHeader={true}
+              muiTableContainerProps={{
+                sx: { maxHeight: "calc(95vh - 200px)" },
+              }}
               positionPagination="bottom"
               muiTablePaginationProps={{
                 labelDisplayedRows: labelDisplayedRowss,
