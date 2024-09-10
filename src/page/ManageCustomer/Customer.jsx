@@ -341,6 +341,8 @@ const Customer = () => {
                   "flex-flow": "column",
                 },
               }}
+              enableDensityToggle={false}
+              enableFullScreenToggle={false}
               enableStickyFooter
               onSearchChange={() => console.log("tetx")}
               enableSorting={true}
