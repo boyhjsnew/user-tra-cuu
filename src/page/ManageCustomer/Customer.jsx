@@ -376,13 +376,39 @@ const Customer = () => {
               columns={columns}
               data={listKHChuaTaoTK.length > 0 ? listKHChuaTaoTK : listKH}
               renderTopToolbarCustomActions={() => (
-                <Box className="col">
+                <Box className="col" style={{ marginLeft: "20px" }}>
                   <Button
                     className="btn_add"
                     style={{}}
                     onClick={handleGetUser}
                     disabled={listKH.length === 0}
                   >
+                    <div
+                      style={{
+                        borderRadius: "6px",
+                        background: "#fce5cd",
+                        padding: "4px",
+                        position: "absolute",
+                        left: -30,
+                        top: -15,
+                        width: "50px",
+                      }}
+                    >
+                      {" "}
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          color: "red",
+                          textAlign: "center",
+                          verticalAlign: "center",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {localStorage.getItem(taxCode) > 0
+                          ? localStorage.getItem(taxCode)
+                          : 0}
+                      </span>
+                    </div>
                     <span
                       style={{ paddingRight: "5px" }}
                       className="fa-solid fa-filter"
@@ -417,14 +443,14 @@ const Customer = () => {
                       style={{ paddingRight: "5px" }}
                       className="fa-solid fa-file-import"
                     ></span>
-                    <span style={{ paddingLeft: "5px" }}>Nhập Excel</span>
+                    <span style={{ paddingLeft: "5px" }}>Nhập excel</span>
                   </Button>
                   <Button onClick={handleExportCustomer} className="btn_export">
                     <span
                       style={{ paddingRight: "5px" }}
                       className="fa-solid fa-file-excel"
                     ></span>
-                    <span style={{ paddingLeft: "5px" }}>Xuất Excel</span>
+                    <span style={{ paddingLeft: "5px" }}>Xuất excel</span>
                   </Button>
                   {listKHChuaTaoTK.length > 0 && (
                     <Button onClick={handleCreateUser} className="btn_user">
