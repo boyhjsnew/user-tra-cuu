@@ -36,10 +36,15 @@ const ModalMenu = (props) => {
         //     setIsModalMenu(false);
         //   }}
         >
-          <a className="p-item-menu" href="#">
+          <a
+            className="p-item-menu"
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://docs.google.com/document/d/1wU67f0qI7sA8UkMWbVV2ExzoMOWYkDdfCJyidOWJWSs/edit?usp=sharing"
+          >
             <span className="fa-solid fa-key pi"></span>
 
-            <span>Đổi mật khẩu</span>
+            <span>Hướng dẫn</span>
           </a>
         </li>
         <li className="separator" role="separator"></li>

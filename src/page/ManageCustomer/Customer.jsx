@@ -394,7 +394,6 @@ const Customer = () => {
                         width: "50px",
                       }}
                     >
-                      {" "}
                       <span
                         style={{
                           fontSize: "10px",
