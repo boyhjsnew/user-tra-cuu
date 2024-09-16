@@ -65,7 +65,7 @@ export default function ModalChooseFile(props) {
             .then(() => {
               // Hiển thị toast thành công khi import xong
               toast.success(
-                <ToastNotify status={1} message="Import thành công!" />,
+                <ToastNotify status={1} message="Dữ liệu đã được cập nhật !" />,
                 { style: styleSuccess }
               );
 
