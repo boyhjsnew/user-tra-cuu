@@ -33,9 +33,10 @@ export default function ModalChooseFile(props) {
 
   const handleImportExcel = () => {
     const taxCode = localStorage.getItem("login");
+
     if (!selectedFile) {
       toast.error(
-        <ToastNotify status={-1} message="Bạn chưa chọn file excel !" />,
+        <ToastNotify status={-1} message="Bạn chưa chọn file excel!" />,
         { style: styleError }
       );
       return;
@@ -48,7 +49,6 @@ export default function ModalChooseFile(props) {
       const data = new Uint8Array(e.target.result);
       workbook.xlsx.load(data).then(() => {
         const worksheet = workbook.getWorksheet(1);
-
         const importedData = [];
 
         worksheet.eachRow((row, rowNumber) => {
@@ -60,8 +60,27 @@ export default function ModalChooseFile(props) {
 
         // Sau khi đã lấy được mảng từ Excel, gọi hàm processUserArray
         if (importedData.length > 0) {
-          // Gọi hàm processUserArray với mảng importedData
-          createUserExcel(taxCode, importedData);
+          // Gọi hàm createUserExcel với mảng importedData
+          createUserExcel(taxCode, importedData)
+            .then(() => {
+              // Hiển thị toast thành công khi import xong
+              toast.success(
+                <ToastNotify status={1} message="Import thành công!" />,
+                { style: styleSuccess }
+              );
+
+              // Đóng modal sau khi thành công
+              setIsModalChooseFile(false);
+            })
+            .catch((error) => {
+              toast.error(
+                <ToastNotify
+                  status={-1}
+                  message="Lỗi trong quá trình import!"
+                />,
+                { style: styleError }
+              );
+            });
         } else {
           toast.error(
             <ToastNotify status={-1} message="Không có dữ liệu để xử lý!" />,
