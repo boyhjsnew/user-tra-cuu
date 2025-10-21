@@ -14,11 +14,17 @@ export default function ModalChooseFile_TT(props) {
   const { isModalChooseFile_TT, setIsModalChooseFile_TT, getCustomer } = props;
   const [selectedFile, setSelectedFile] = useState(null);
   const [taxCode, setTaxCode] = useState("");
+  // Thêm state để theo dõi trạng thái đang xử lý
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const toggleModal = () => {
+    // Chỉ cho phép đóng modal khi không đang xử lý
+    if (isProcessing) return;
+
     setIsModalChooseFile_TT(false);
     setSelectedFile(null);
     setTaxCode("");
+    setIsProcessing(false); // Reset trạng thái xử lý
   };
 
   if (isModalChooseFile_TT) {
@@ -28,12 +34,18 @@ export default function ModalChooseFile_TT(props) {
   }
 
   const handleFileChange = (e) => {
+    // Không cho phép thay đổi file khi đang xử lý
+    if (isProcessing) return;
+
     const file = e.target.files[0];
     setSelectedFile(file);
     console.log(file);
   };
 
   const handleImportExcel = () => {
+    // Ngăn chặn gọi API nhiều lần
+    if (isProcessing) return;
+
     if (!taxCode.trim()) {
       toast.error(
         <ToastNotify status={-1} message="Vui lòng nhập mã số thuế!" />,
@@ -49,6 +61,9 @@ export default function ModalChooseFile_TT(props) {
       );
       return;
     }
+
+    // Bắt đầu xử lý
+    setIsProcessing(true);
 
     // Hiển thị thông báo đang xử lý
     toast.info(
@@ -95,6 +110,10 @@ export default function ModalChooseFile_TT(props) {
                 <ToastNotify status={-1} message={`Lỗi: ${error.message}`} />,
                 { style: styleError }
               );
+            })
+            .finally(() => {
+              // Kết thúc xử lý
+              setIsProcessing(false);
             });
         } else {
           toast.dismiss();
@@ -102,6 +121,8 @@ export default function ModalChooseFile_TT(props) {
             <ToastNotify status={-1} message="Không có dữ liệu để xử lý!" />,
             { style: styleError }
           );
+          // Kết thúc xử lý
+          setIsProcessing(false);
         }
       });
     };
@@ -110,6 +131,9 @@ export default function ModalChooseFile_TT(props) {
   };
 
   const handleExportCustomer = () => {
+    // Không cho phép export khi đang xử lý
+    if (isProcessing) return;
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("users");
 
@@ -154,16 +178,6 @@ export default function ModalChooseFile_TT(props) {
     <>
       {isModalChooseFile_TT && (
         <div className="modal">
-          {/* <ToastNotify
-            autoClose={2000}
-            hideProgressBar
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="light"
-          /> */}
           <div onClick={toggleModal} className="overlay"></div>
           <div className="modal-content-change">
             <div>
@@ -205,6 +219,7 @@ export default function ModalChooseFile_TT(props) {
                       value={taxCode}
                       onChange={(e) => setTaxCode(e.target.value)}
                       placeholder="Nhập mã số thuế..."
+                      disabled={isProcessing}
                     />
                   </div>
                 </div>
@@ -219,6 +234,7 @@ export default function ModalChooseFile_TT(props) {
                       accept=".xlsx"
                       className="input-customer"
                       onChange={handleFileChange}
+                      disabled={isProcessing}
                     />
                   </div>
                 </div>
@@ -235,6 +251,11 @@ export default function ModalChooseFile_TT(props) {
                   <div
                     className="btn-template col"
                     onClick={handleExportCustomer}
+                    style={{
+                      opacity: isProcessing ? 0.5 : 1,
+                      cursor: isProcessing ? "not-allowed" : "pointer",
+                      pointerEvents: isProcessing ? "none" : "auto",
+                    }}
                   >
                     <span
                       className="fa-regular fa-file-excel"
@@ -244,19 +265,31 @@ export default function ModalChooseFile_TT(props) {
                   </div>
                   <div
                     className="btn-get col"
-                    style={{ margin: "10px " }}
+                    style={{
+                      margin: "10px ",
+                      opacity: isProcessing ? 0.5 : 1,
+                      cursor: isProcessing ? "not-allowed" : "pointer",
+                      pointerEvents: isProcessing ? "none" : "auto",
+                    }}
                     onClick={handleImportExcel}
                   >
                     <span
                       className="fa-solid fa-upload"
                       style={{ paddingRight: "5px" }}
                     ></span>
-                    <span className="p-component">Nhận file</span>
+                    <span className="p-component">
+                      {isProcessing ? "Đang xử lý..." : "Nhận file"}
+                    </span>
                   </div>
                   <div
                     role="none"
                     className="btn-close col"
                     onClick={toggleModal}
+                    style={{
+                      opacity: isProcessing ? 0.5 : 1,
+                      cursor: isProcessing ? "not-allowed" : "pointer",
+                      pointerEvents: isProcessing ? "none" : "auto",
+                    }}
                   >
                     <span
                       className="fa-solid fa-xmark"

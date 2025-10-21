@@ -18,7 +18,7 @@ async function CreateTT(taxCode, invoiceInfo) {
       headers: {
         "Content-Type": "application/json",
         Authorization:
-          "Bear " + "0802tttO87316arj5+Od3Fqyy5hzdBfIuPk73eKqpAzBSvv8sY=",
+          "Bear " + "O87316arj5+Od3Fqyy5hzdBfIuPk73eKqpAzBSvv8sY=",
       },
       body: JSON.stringify(invoiceInfo),
       signal: controller.signal,
