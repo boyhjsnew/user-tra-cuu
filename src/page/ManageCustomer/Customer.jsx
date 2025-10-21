@@ -18,6 +18,8 @@ import { ToastContainer, toast } from "react-toastify";
 
 import { styleError, styleSuccess } from "../../Components/ToastNotifyStyle";
 import ToastNotify from "../../Components/ToastNotify";
+import ModalChooseFile_DC from "../../Components/ModalChooseFile_DC";
+import ModalChooseFile_TT from "../../Components/ModalChooseFile_TT";
 
 const Customer = () => {
   //hidden scroll
@@ -49,6 +51,8 @@ const Customer = () => {
   const [modalAssign, setModalAssign] = useState(false);
   const [isLoading, setIsloading] = useState(false);
   const [isModalChooseFile, setIsModalChooseFile] = useState(false);
+  const [isModalChooseFile_DC, setIsModalChooseFile_DC] = useState(false);
+  const [isModalChooseFile_TT, setIsModalChooseFile_TT] = useState(false);
   const [taxCode, setTaxCode] = useState("");
   const [listKH, setListKH] = useState([]);
   const [isCreateUser, setIsCreateUser] = useState(false);
@@ -332,6 +336,14 @@ const Customer = () => {
             isModalChooseFile={isModalChooseFile}
             setIsModalChooseFile={setIsModalChooseFile}
           />
+          <ModalChooseFile_DC
+            isModalChooseFile_DC={isModalChooseFile_DC}
+            setIsModalChooseFile_DC={setIsModalChooseFile_DC}
+          />
+          <ModalChooseFile_TT
+            isModalChooseFile_TT={isModalChooseFile_TT}
+            setIsModalChooseFile_TT={setIsModalChooseFile_TT}
+          />
           <div className="col-12">
             <MaterialReactTable
               muiTablePaperProps={{
@@ -436,6 +448,34 @@ const Customer = () => {
 
                   <Button
                     className="btn_import"
+                    onClick={() =>
+                      setIsModalChooseFile_TT(!isModalChooseFile_TT)
+                    }
+                  >
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-file-import"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>
+                      Excel thay thế hàng loạt
+                    </span>
+                  </Button>
+                  <Button
+                    className="btn_import"
+                    onClick={() =>
+                      setIsModalChooseFile_DC(!isModalChooseFile_DC)
+                    }
+                  >
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-file-import"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>
+                      Excel điều chỉnh hàng loạt
+                    </span>
+                  </Button>
+                  <Button
+                    className="btn_import"
                     onClick={() => setIsModalChooseFile(!isModalChooseFile)}
                   >
                     <span
@@ -444,6 +484,7 @@ const Customer = () => {
                     ></span>
                     <span style={{ paddingLeft: "5px" }}>Nhập excel</span>
                   </Button>
+
                   <Button onClick={handleExportCustomer} className="btn_export">
                     <span
                       style={{ paddingRight: "5px" }}

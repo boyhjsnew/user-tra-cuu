@@ -8,18 +8,21 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import ToastNotify from "./ToastNotify";
 import { styleError, styleSuccess } from "./ToastNotifyStyle";
-import { createTTExcel } from "../utils/createUserExcel";
 
-export default function ModalChooseFile(props) {
-  const { isModalChooseFile, setIsModalChooseFile, getCustomer } = props;
+import { createDCExcel } from "../utils/createDCExcel";
+
+export default function ModalChooseFile_DC(props) {
+  const { isModalChooseFile_DC, setIsModalChooseFile_DC, getCustomer } = props;
   const [selectedFile, setSelectedFile] = useState(null);
+  const [taxCode, setTaxCode] = useState("");
 
   const toggleModal = () => {
-    setIsModalChooseFile(false);
+    setIsModalChooseFile_DC(false);
     setSelectedFile(null);
+    setTaxCode("");
   };
 
-  if (isModalChooseFile) {
+  if (isModalChooseFile_DC) {
     document.body.classList.add("active-modal");
   } else {
     document.body.classList.remove("active-modal");
@@ -32,7 +35,13 @@ export default function ModalChooseFile(props) {
   };
 
   const handleImportExcel = () => {
-    const taxCode = localStorage.getItem("login");
+    if (!taxCode.trim()) {
+      toast.error(
+        <ToastNotify status={-1} message="Vui lòng nhập mã số thuế!" />,
+        { style: styleError }
+      );
+      return;
+    }
 
     if (!selectedFile) {
       toast.error(
@@ -57,11 +66,13 @@ export default function ModalChooseFile(props) {
             importedData.push(rowData);
           }
         });
+        console.log("Dữ liệu từ file Excel:", importedData);
 
         // Sau khi đã lấy được mảng từ Excel, gọi hàm processUserArray
         if (importedData.length > 0) {
           // Gọi hàm createUserExcel với mảng importedData
-          createTTExcel(taxCode, importedData)
+
+          createDCExcel(taxCode, importedData)
             .then(() => {
               // Hiển thị toast thành công khi import xong
               toast.success(
@@ -70,7 +81,7 @@ export default function ModalChooseFile(props) {
               );
 
               // Đóng modal sau khi thành công
-              setIsModalChooseFile(false);
+              setIsModalChooseFile_DC(false);
             })
             .catch((error) => {
               toast.error(
@@ -98,7 +109,28 @@ export default function ModalChooseFile(props) {
     const worksheet = workbook.addWorksheet("users");
 
     // Thêm tiêu đề cột
-    const columns = ["Mã đối tượng (*)", "Mật khẩu (*)"];
+    const columns = [
+      "Ký hiệu (*)",
+      "Số hoá đơn gốc",
+      "Ngày hoá đơn (*)",
+      "id hoá đơn (*)",
+      "STT",
+      "Mã hàng",
+      "Tên hàng",
+      "Đơn vị tính",
+      "Số lượng",
+      "Đơn giá",
+      "Tiền chiết khấu",
+      "Tiền trước thuế",
+      "Thuế suất",
+      "Tiền thuế",
+      "Tổng tiền",
+      "Tính chất",
+      "Tên người mua (*)",
+      "Địa chỉ",
+      "Mã số thuế",
+      "Tên đơn vị",
+    ];
     worksheet.addRow(columns);
 
     workbook.xlsx.writeBuffer().then((data) => {
@@ -108,7 +140,7 @@ export default function ModalChooseFile(props) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Template_users.xlsx";
+      a.download = "Template_DC.xlsx";
       a.click();
       window.URL.revokeObjectURL(url);
     });
@@ -116,7 +148,7 @@ export default function ModalChooseFile(props) {
 
   return (
     <>
-      {isModalChooseFile && (
+      {isModalChooseFile_DC && (
         <div className="modal">
           {/* <ToastNotify
             autoClose={2000}
@@ -147,7 +179,7 @@ export default function ModalChooseFile(props) {
                     marginTop: "0.5rem",
                   }}
                 >
-                  Nhập dữ liệu từ Excel
+                  Excel điều chỉnh hàng loạt
                 </span>
                 <div className="close-modal" onClick={toggleModal}>
                   <i
@@ -158,6 +190,20 @@ export default function ModalChooseFile(props) {
               </div>
 
               <form className="form-customer">
+                <div className="row">
+                  <div className="block col" style={{ flex: 1 }}>
+                    <label className="block lbl-txt" htmlFor="">
+                      Mã số thuế (*)
+                    </label>
+                    <input
+                      type="text"
+                      className="input-customer"
+                      value={taxCode}
+                      onChange={(e) => setTaxCode(e.target.value)}
+                      placeholder="Nhập mã số thuế..."
+                    />
+                  </div>
+                </div>
                 <div className="row">
                   <div className="block col" style={{ flex: 1 }}>
                     <label className="block lbl-txt" htmlFor="">
