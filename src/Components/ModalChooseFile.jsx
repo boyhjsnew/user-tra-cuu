@@ -147,7 +147,7 @@ export default function ModalChooseFile(props) {
                     marginTop: "0.5rem",
                   }}
                 >
-                  Nhập dữ liệu từ Excel
+                  Nhập excel user
                 </span>
                 <div className="close-modal" onClick={toggleModal}>
                   <i
