@@ -3,8 +3,8 @@ import { replace } from "react-router-dom";
 async function CreateDC(taxCode, invoiceInfo) {
   // Xử lý taxcode để loại bỏ dấu gạch ngang và khoảng trắng
   const TX = taxCode.replace(/[-\s]/g, "");
-  //const url = `https://${TX}.minvoice.app/api/InvoiceApi78/DieuChinh`;
-  const url = `https://${TX}.minvoice.com.vn/api/InvoiceApi78/DieuChinh`;
+  const url = `https://${TX}.minvoice.app/api/InvoiceApi78/DieuChinh`;
+  //  const url = `https://${TX}.minvoice.com.vn/api/InvoiceApi78/DieuChinh`;
 
   try {
     const response = await fetch(url, {
