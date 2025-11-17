@@ -46,8 +46,8 @@ export async function createDCExcel(taxCode, dataArray) {
       .padStart(0, "0");
 
     acc[so_benh_an].data.push({
-      //stt_rec0: currentSTT,
-      stt: currentSTT,
+      stt_rec0: currentSTT,
+      //stt: currentSTT,
       ma: inv_itemCode,
       inv_itemName,
       inv_unitCode: inv_unitName,
