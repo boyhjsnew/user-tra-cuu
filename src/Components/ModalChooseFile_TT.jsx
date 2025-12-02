@@ -14,6 +14,7 @@ export default function ModalChooseFile_TT(props) {
   const { isModalChooseFile_TT, setIsModalChooseFile_TT, getCustomer } = props;
   const [selectedFile, setSelectedFile] = useState(null);
   const [taxCode, setTaxCode] = useState("");
+  const [invoiceSeriesOverride, setInvoiceSeriesOverride] = useState("");
   // Thêm state để theo dõi trạng thái đang xử lý
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -24,6 +25,7 @@ export default function ModalChooseFile_TT(props) {
     setIsModalChooseFile_TT(false);
     setSelectedFile(null);
     setTaxCode("");
+    setInvoiceSeriesOverride("");
     setIsProcessing(false); // Reset trạng thái xử lý
   };
 
@@ -92,7 +94,7 @@ export default function ModalChooseFile_TT(props) {
         if (importedData.length > 0) {
           // Gọi hàm createUserExcel với mảng importedData
 
-          createTTExcel(taxCode, importedData)
+          createTTExcel(taxCode, importedData, invoiceSeriesOverride.trim())
             .then(() => {
               toast.dismiss(); // Đóng toast đang xử lý
               // Hiển thị toast thành công khi import xong
@@ -220,6 +222,25 @@ export default function ModalChooseFile_TT(props) {
                       placeholder="Nhập mã số thuế..."
                       disabled={isProcessing}
                     />
+                  </div>
+                </div>
+
+                <div className="row">
+                  <div className="block col" style={{ flex: 1 }}>
+                    <label className="block lbl-txt" htmlFor="">
+                      Ký hiệu để lấy hoá đơn gốc (tuỳ chọn)
+                    </label>
+                    <input
+                      type="text"
+                      className="input-customer"
+                      value={invoiceSeriesOverride}
+                      onChange={(e) => setInvoiceSeriesOverride(e.target.value)}
+                      placeholder="Nhập ký hiệu thực tế của hóa đơn gốc nếu khác trong file..."
+                      disabled={isProcessing}
+                    />
+                    <small style={{ color: "#888" }}>
+                      Ký hiệu này chỉ dùng để tìm hóa đơn gốc. Ký hiệu tạo hóa đơn thay thế vẫn lấy từ file Excel.
+                    </small>
                   </div>
                 </div>
 

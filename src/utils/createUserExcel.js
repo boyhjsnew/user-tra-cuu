@@ -2,7 +2,11 @@ import CreateTT from "./createUser";
 import formatDate_DC from "./formatDate";
 import GetInfoInvoice from "./GetInfoInvoice";
 
-export async function createTTExcel(taxCode, dataArray) {
+export async function createTTExcel(
+  taxCode,
+  dataArray,
+  overrideInvoiceSeries = ""
+) {
   console.log("🚀 Bắt đầu xử lý với taxCode:", taxCode);
   console.log("📊 Số lượng dòng dữ liệu:", dataArray.length);
 
@@ -99,8 +103,20 @@ export async function createTTExcel(taxCode, dataArray) {
     );
 
     for (const invoice of batch) {
+      // Ký hiệu để lấy hóa đơn: dùng override từ form nếu có, không thì dùng từ Excel
+      const seriesToGetInvoice =
+        overrideInvoiceSeries || invoice.inv_invoiceSeries;
+      // Ký hiệu để tạo hóa đơn thay thế: luôn dùng từ Excel
+      const seriesToCreateTT = invoice.inv_invoiceSeries;
+
+      console.log(`🔍 Đang xử lý hóa đơn: số bệnh án=${invoice.so_benh_an}`);
       console.log(
-        `🔍 Đang xử lý hóa đơn: số bệnh án=${invoice.so_benh_an}, ký hiệu=${invoice.inv_invoiceSeries}`
+        `   📥 Ký hiệu để lấy hóa đơn: "${seriesToGetInvoice}" ${
+          overrideInvoiceSeries ? "(từ form)" : "(từ Excel)"
+        }`
+      );
+      console.log(
+        `   📤 Ký hiệu để tạo hóa đơn thay thế: "${seriesToCreateTT}" (từ Excel)`
       );
 
       try {
@@ -108,16 +124,16 @@ export async function createTTExcel(taxCode, dataArray) {
         const invoiceInfo = await GetInfoInvoice(
           taxCode,
           invoice.so_benh_an,
-          invoice.inv_invoiceSeries
+          seriesToGetInvoice
         );
 
         if (!invoiceInfo.success) {
           console.error(
-            `❌ Không thể lấy thông tin hóa đơn cho ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}`
+            `❌ Không thể lấy thông tin hóa đơn cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
           );
           errorInvoices.push({
             so_benh_an: invoice.so_benh_an,
-            inv_invoiceSeries: invoice.inv_invoiceSeries,
+            inv_invoiceSeries: seriesToGetInvoice,
             message:
               invoiceInfo.message || "Không tìm thấy hóa đơn để thay thế",
           });
@@ -133,18 +149,24 @@ export async function createTTExcel(taxCode, dataArray) {
 
         if (!invoice.inv_originalId) {
           console.error(
-            `❌ Không tìm thấy inv_originalId cho ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}`
+            `❌ Không tìm thấy inv_originalId cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
           );
           errorInvoices.push({
             so_benh_an: invoice.so_benh_an,
-            inv_invoiceSeries: invoice.inv_invoiceSeries,
+            inv_invoiceSeries: seriesToGetInvoice,
             message: "Không tìm thấy ID hóa đơn gốc",
           });
           continue;
         }
 
         console.log(
-          `✅ Đã lấy được inv_originalId: ${invoice.inv_originalId} cho ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}`
+          `✅ Đã lấy được inv_originalId: ${invoice.inv_originalId} cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
+        );
+
+        // Đảm bảo ký hiệu trong invoice là ký hiệu từ Excel (để tạo hóa đơn thay thế)
+        invoice.inv_invoiceSeries = seriesToCreateTT;
+        console.log(
+          `📤 Ký hiệu sẽ dùng khi tạo hóa đơn thay thế: "${seriesToCreateTT}" (từ Excel)`
         );
 
         const payload = { data: [invoice] };
@@ -163,18 +185,18 @@ export async function createTTExcel(taxCode, dataArray) {
           console.error(`❌ Không thể tạo hóa đơn cho ${invoice.sovb}`);
           errorInvoices.push({
             so_benh_an: invoice.so_benh_an,
-            inv_invoiceSeries: invoice.inv_invoiceSeries,
+            inv_invoiceSeries: seriesToCreateTT,
             message: response?.data?.message || "Lỗi không xác định",
           });
         }
       } catch (error) {
         console.error(
-          `⚠️ Lỗi khi tạo hóa đơn cho ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}:`,
+          `⚠️ Lỗi khi tạo hóa đơn cho ${invoice.so_benh_an} - ${seriesToCreateTT}:`,
           error
         );
         errorInvoices.push({
           so_benh_an: invoice.so_benh_an,
-          inv_invoiceSeries: invoice.inv_invoiceSeries,
+          inv_invoiceSeries: seriesToCreateTT,
           message: error.message || "Lỗi không xác định",
         });
       }
