@@ -24,8 +24,6 @@ export async function createTTExcel(
       inv_invoiceSeries,
       so_benh_an,
       inv_invoiceIssuedDate, // Bỏ qua inv_originalId - sẽ lấy từ API
-      ,
-      ,
       inv_itemCode,
       inv_itemName,
       inv_unitName,
