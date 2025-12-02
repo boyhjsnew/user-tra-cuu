@@ -142,7 +142,6 @@ export default function ModalChooseFile_TT(props) {
       "Ký hiệu (*)",
       "Số hoá đơn gốc",
       "Ngày hoá đơn (*)",
-      "id hoá đơn (*)",
       "STT",
       "Mã hàng",
       "Tên hàng",

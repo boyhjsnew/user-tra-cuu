@@ -15,11 +15,18 @@ export default function ModalChooseFile_DC(props) {
   const { isModalChooseFile_DC, setIsModalChooseFile_DC, getCustomer } = props;
   const [selectedFile, setSelectedFile] = useState(null);
   const [taxCode, setTaxCode] = useState("");
+  const [invoiceSeriesOverride, setInvoiceSeriesOverride] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isExternalSystem, setIsExternalSystem] = useState(false);
 
   const toggleModal = () => {
+    if (isProcessing) return;
     setIsModalChooseFile_DC(false);
     setSelectedFile(null);
     setTaxCode("");
+    setInvoiceSeriesOverride("");
+    setIsExternalSystem(false);
+    setIsProcessing(false);
   };
 
   if (isModalChooseFile_DC) {
@@ -35,6 +42,7 @@ export default function ModalChooseFile_DC(props) {
   };
 
   const handleImportExcel = () => {
+    if (isProcessing) return;
     if (!taxCode.trim()) {
       toast.error(
         <ToastNotify status={-1} message="Vui lòng nhập mã số thuế!" />,
@@ -51,54 +59,90 @@ export default function ModalChooseFile_DC(props) {
       return;
     }
 
+    setIsProcessing(true);
     const workbook = new ExcelJS.Workbook();
     const reader = new FileReader();
 
     reader.onload = (e) => {
       const data = new Uint8Array(e.target.result);
-      workbook.xlsx.load(data).then(() => {
-        const worksheet = workbook.getWorksheet(1);
-        const importedData = [];
+      workbook.xlsx
+        .load(data)
+        .then(() => {
+          const worksheet = workbook.getWorksheet(1);
+          const importedData = [];
 
-        worksheet.eachRow((row, rowNumber) => {
-          if (rowNumber !== 1) {
-            const rowData = row.values.slice(1);
-            importedData.push(rowData);
+          worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber !== 1) {
+              const rowData = row.values.slice(1);
+              importedData.push(rowData);
+            }
+          });
+          console.log("Dữ liệu từ file Excel:", importedData);
+
+          // Sau khi đã lấy được mảng từ Excel, gọi hàm processUserArray
+          if (importedData.length > 0) {
+            // Gọi hàm createDCExcel với mảng importedData
+            createDCExcel(
+              taxCode,
+              importedData,
+              invoiceSeriesOverride.trim(),
+              isExternalSystem
+            )
+              .then(() => {
+                // Hiển thị toast thành công khi import xong
+                toast.success(
+                  <ToastNotify
+                    status={1}
+                    message="Dữ liệu đã được cập nhật !"
+                  />,
+                  { style: styleSuccess }
+                );
+
+                // Đóng modal sau khi thành công
+                setIsModalChooseFile_DC(false);
+              })
+              .catch((error) => {
+                toast.error(
+                  <ToastNotify
+                    status={-1}
+                    message="Lỗi trong quá trình import!"
+                  />,
+                  { style: styleError }
+                );
+              })
+              .finally(() => {
+                setIsProcessing(false);
+              });
+          } else {
+            toast.error(
+              <ToastNotify status={-1} message="Không có dữ liệu để xử lý!" />,
+              { style: styleError }
+            );
+            setIsProcessing(false);
           }
-        });
-        console.log("Dữ liệu từ file Excel:", importedData);
-
-        // Sau khi đã lấy được mảng từ Excel, gọi hàm processUserArray
-        if (importedData.length > 0) {
-          // Gọi hàm createUserExcel với mảng importedData
-
-          createDCExcel(taxCode, importedData)
-            .then(() => {
-              // Hiển thị toast thành công khi import xong
-              toast.success(
-                <ToastNotify status={1} message="Dữ liệu đã được cập nhật !" />,
-                { style: styleSuccess }
-              );
-
-              // Đóng modal sau khi thành công
-              setIsModalChooseFile_DC(false);
-            })
-            .catch((error) => {
-              toast.error(
-                <ToastNotify
-                  status={-1}
-                  message="Lỗi trong quá trình import!"
-                />,
-                { style: styleError }
-              );
-            });
-        } else {
+        })
+        .catch((error) => {
+          console.error("Lỗi khi đọc file Excel:", error);
           toast.error(
-            <ToastNotify status={-1} message="Không có dữ liệu để xử lý!" />,
+            <ToastNotify
+              status={-1}
+              message="Không thể đọc file Excel. Vui lòng thử lại!"
+            />,
             { style: styleError }
           );
-        }
-      });
+          setIsProcessing(false);
+        });
+    };
+
+    reader.onerror = () => {
+      toast.error(
+        <ToastNotify
+          status={-1}
+          message="Không thể đọc file. Vui lòng thử lại với file khác!"
+        />,
+        { style: styleError }
+      );
+      setIsProcessing(false);
     };
 
     reader.readAsArrayBuffer(selectedFile);
@@ -113,7 +157,6 @@ export default function ModalChooseFile_DC(props) {
       "Ký hiệu (*)",
       "Số hoá đơn gốc",
       "Ngày hoá đơn (*)",
-      "id hoá đơn (*)",
       "STT",
       "Mã hàng",
       "Tên hàng",
@@ -160,7 +203,11 @@ export default function ModalChooseFile_DC(props) {
             pauseOnHover
             theme="light"
           /> */}
-          <div onClick={toggleModal} className="overlay"></div>
+          <div
+            onClick={!isProcessing ? toggleModal : undefined}
+            className="overlay"
+            style={isProcessing ? { cursor: "not-allowed" } : {}}
+          ></div>
           <div className="modal-content-change">
             <div>
               <div
@@ -201,7 +248,59 @@ export default function ModalChooseFile_DC(props) {
                       value={taxCode}
                       onChange={(e) => setTaxCode(e.target.value)}
                       placeholder="Nhập mã số thuế..."
+                      disabled={isProcessing}
                     />
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="block col" style={{ flex: 1 }}>
+                    <label className="block lbl-txt" htmlFor="">
+                      Ký hiệu để lấy hoá đơn gốc (tuỳ chọn)
+                    </label>
+                    <input
+                      type="text"
+                      className="input-customer"
+                      value={invoiceSeriesOverride}
+                      onChange={(e) => setInvoiceSeriesOverride(e.target.value)}
+                      placeholder="Nhập ký hiệu thực tế của hóa đơn gốc nếu khác trong file..."
+                      disabled={isProcessing}
+                    />
+                    <small style={{ color: "#888" }}>
+                      Ký hiệu này chỉ dùng để tìm hóa đơn gốc. Ký hiệu tạo hóa
+                      đơn điều chỉnh vẫn lấy từ file Excel.
+                    </small>
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="block col" style={{ flex: 1 }}>
+                    <label className="block lbl-txt" htmlFor="">
+                      Tuỳ chọn nguồn dữ liệu
+                    </label>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        id="external-system-toggle"
+                        checked={isExternalSystem}
+                        onChange={(e) => setIsExternalSystem(e.target.checked)}
+                        disabled={isProcessing}
+                      />
+                      <label
+                        htmlFor="external-system-toggle"
+                        style={{ margin: 0, cursor: "pointer" }}
+                      >
+                        Điều chỉnh từ hệ thống khác (đã có ID hoá đơn)
+                      </label>
+                    </div>
+                    <small style={{ color: "#888" }}>
+                      Khi bật, hệ thống bỏ qua bước gọi API lấy ID và dùng dữ
+                      liệu sẵn có từ file Excel.
+                    </small>
                   </div>
                 </div>
                 <div className="row">
@@ -214,6 +313,7 @@ export default function ModalChooseFile_DC(props) {
                       accept=".xlsx"
                       className="input-customer"
                       onChange={handleFileChange}
+                      disabled={isProcessing}
                     />
                   </div>
                 </div>
@@ -229,7 +329,16 @@ export default function ModalChooseFile_DC(props) {
                 >
                   <div
                     className="btn-template col"
-                    onClick={handleExportCustomer}
+                    onClick={!isProcessing ? handleExportCustomer : undefined}
+                    style={
+                      isProcessing
+                        ? {
+                            opacity: 0.6,
+                            pointerEvents: "none",
+                            cursor: "not-allowed",
+                          }
+                        : {}
+                    }
                   >
                     <span
                       className="fa-regular fa-file-excel"
@@ -239,19 +348,35 @@ export default function ModalChooseFile_DC(props) {
                   </div>
                   <div
                     className="btn-get col"
-                    style={{ margin: "10px " }}
+                    style={{
+                      margin: "10px ",
+                      opacity: isProcessing ? 0.7 : 1,
+                      pointerEvents: isProcessing ? "none" : "auto",
+                      cursor: isProcessing ? "not-allowed" : "pointer",
+                    }}
                     onClick={handleImportExcel}
                   >
                     <span
                       className="fa-solid fa-upload"
                       style={{ paddingRight: "5px" }}
                     ></span>
-                    <span className="p-component">Nhận file</span>
+                    <span className="p-component">
+                      {isProcessing ? "Đang xử lý..." : "Nhận file"}
+                    </span>
                   </div>
                   <div
                     role="none"
                     className="btn-close col"
                     onClick={toggleModal}
+                    style={
+                      isProcessing
+                        ? {
+                            opacity: 0.6,
+                            pointerEvents: "none",
+                            cursor: "not-allowed",
+                          }
+                        : {}
+                    }
                   >
                     <span
                       className="fa-solid fa-xmark"

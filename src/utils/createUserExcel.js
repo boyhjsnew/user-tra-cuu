@@ -1,5 +1,6 @@
 import CreateTT from "./createUser";
 import formatDate_DC from "./formatDate";
+import GetInfoInvoice from "./GetInfoInvoice";
 
 export async function createTTExcel(taxCode, dataArray) {
   console.log("🚀 Bắt đầu xử lý với taxCode:", taxCode);
@@ -18,8 +19,8 @@ export async function createTTExcel(taxCode, dataArray) {
     const [
       inv_invoiceSeries,
       so_benh_an,
-      inv_invoiceIssuedDate,
-      inv_originalId,
+      inv_invoiceIssuedDate, // Bỏ qua inv_originalId - sẽ lấy từ API
+      ,
       ,
       inv_itemCode,
       inv_itemName,
@@ -37,12 +38,15 @@ export async function createTTExcel(taxCode, dataArray) {
       inv_buyerTaxCode,
     ] = item;
 
-    if (!acc[so_benh_an]) {
-      acc[so_benh_an] = {
-        inv_originalId,
+    const groupKey = `${so_benh_an}|${inv_invoiceSeries}`;
+
+    if (!acc[groupKey]) {
+      acc[groupKey] = {
+        inv_originalId: null, // Sẽ được lấy từ API
         ngayvb: formatDate_DC(inv_invoiceIssuedDate),
         sovb: `DC_${so_benh_an}`,
         inv_invoiceSeries,
+        so_benh_an,
         inv_invoiceIssuedDate: formatDate_DC(inv_invoiceIssuedDate),
         inv_currencyCode: "VND",
         inv_exchangeRate: 1,
@@ -59,9 +63,9 @@ export async function createTTExcel(taxCode, dataArray) {
       };
     }
 
-    const currentSTT = acc[so_benh_an].details[0].data.length + 1;
+    const currentSTT = acc[groupKey].details[0].data.length + 1;
 
-    acc[so_benh_an].details[0].data.push({
+    acc[groupKey].details[0].data.push({
       stt_rec0: currentSTT,
       ma: inv_itemCode,
       inv_itemName,
@@ -95,9 +99,56 @@ export async function createTTExcel(taxCode, dataArray) {
     );
 
     for (const invoice of batch) {
-      const payload = { data: [invoice] };
+      console.log(
+        `🔍 Đang xử lý hóa đơn: số bệnh án=${invoice.so_benh_an}, ký hiệu=${invoice.inv_invoiceSeries}`
+      );
 
       try {
+        // Lấy thông tin hóa đơn từ API để lấy inv_originalId
+        const invoiceInfo = await GetInfoInvoice(
+          taxCode,
+          invoice.so_benh_an,
+          invoice.inv_invoiceSeries
+        );
+
+        if (!invoiceInfo.success) {
+          console.error(
+            `❌ Không thể lấy thông tin hóa đơn cho ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}`
+          );
+          errorInvoices.push({
+            so_benh_an: invoice.so_benh_an,
+            inv_invoiceSeries: invoice.inv_invoiceSeries,
+            message:
+              invoiceInfo.message || "Không tìm thấy hóa đơn để thay thế",
+          });
+          continue;
+        }
+
+        // Sử dụng inv_originalId từ response hoặc inv_invoiceAuth_id
+        // GetInfoInvoice trả về inv_invoiceAuth_id, có thể dùng làm inv_originalId
+        invoice.inv_originalId =
+          invoiceInfo.data?.inv_originalId ||
+          invoiceInfo.data?.inv_invoiceAuth_id ||
+          invoiceInfo.inv_invoiceAuth_id;
+
+        if (!invoice.inv_originalId) {
+          console.error(
+            `❌ Không tìm thấy inv_originalId cho ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}`
+          );
+          errorInvoices.push({
+            so_benh_an: invoice.so_benh_an,
+            inv_invoiceSeries: invoice.inv_invoiceSeries,
+            message: "Không tìm thấy ID hóa đơn gốc",
+          });
+          continue;
+        }
+
+        console.log(
+          `✅ Đã lấy được inv_originalId: ${invoice.inv_originalId} cho ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}`
+        );
+
+        const payload = { data: [invoice] };
+
         // Thêm timeout cho mỗi request
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Request timeout")), 30000)
@@ -111,14 +162,19 @@ export async function createTTExcel(taxCode, dataArray) {
         } else {
           console.error(`❌ Không thể tạo hóa đơn cho ${invoice.sovb}`);
           errorInvoices.push({
-            so_benh_an: invoice.sovb,
+            so_benh_an: invoice.so_benh_an,
+            inv_invoiceSeries: invoice.inv_invoiceSeries,
             message: response?.data?.message || "Lỗi không xác định",
           });
         }
       } catch (error) {
-        console.error(`⚠️ Lỗi khi tạo hóa đơn cho ${invoice.sovb}:`, error);
+        console.error(
+          `⚠️ Lỗi khi tạo hóa đơn cho ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}:`,
+          error
+        );
         errorInvoices.push({
-          so_benh_an: invoice.sovb,
+          so_benh_an: invoice.so_benh_an,
+          inv_invoiceSeries: invoice.inv_invoiceSeries,
           message: error.message || "Lỗi không xác định",
         });
       }
@@ -136,11 +192,15 @@ export async function createTTExcel(taxCode, dataArray) {
 
   if (errorInvoices.length > 0) {
     console.log("🛑 Danh sách các hóa đơn bị lỗi:");
-    errorInvoices.forEach(({ so_benh_an, message }) => {
-      console.log(`- Số bệnh án: ${so_benh_an}, Lỗi: ${message}`);
+    errorInvoices.forEach(({ so_benh_an, inv_invoiceSeries, message }) => {
+      console.log(
+        `- Số bệnh án: ${so_benh_an}, Ký hiệu: ${
+          inv_invoiceSeries || "N/A"
+        }, Lỗi: ${message}`
+      );
     });
     throw new Error(
-      `Có ${errorInvoices.length} hóa đơn bị lỗi trong quá trình xử lý`
+      `Có ${errorInvoices.length} hóa đơn bị lỗi. Vui lòng kiểm tra console để xem chi tiết.`
     );
   } else {
     console.log("🎉 Tất cả hóa đơn đã được tạo thành công.");
