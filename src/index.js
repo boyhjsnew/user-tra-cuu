@@ -4,7 +4,13 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+let rootEl = document.getElementById("root");
+if (!rootEl) {
+  rootEl = document.createElement("div");
+  rootEl.id = "root";
+  document.body.appendChild(rootEl);
+}
+const root = ReactDOM.createRoot(rootEl);
 root.render(<App />);
 
 // If you want to start measuring performance in your app, pass a function

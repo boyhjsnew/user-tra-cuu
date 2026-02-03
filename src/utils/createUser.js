@@ -4,6 +4,7 @@ async function CreateTT(taxCode, invoiceInfo) {
   // Xử lý taxcode để loại bỏ dấu gạch ngang và khoảng trắng
   const TX = taxCode.replace(/[-\s]/g, "");
   const url = `https://${TX}.minvoice.app/api/InvoiceApi78/ThayThe`;
+  // const url = `https://${TX}.minvoice.com.vn/api/InvoiceApi78/ThayThe`;
 
   console.log("🔗 URL:", url);
   console.log("📋 TaxCode đã xử lý:", TX);

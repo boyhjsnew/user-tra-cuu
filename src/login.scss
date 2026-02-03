@@ -8,9 +8,10 @@
       .left-row {
         display: flex;
         flex: 1;
-        background-image: url("./assets/bg-4.png");
-        background-repeat: no-repeat;
-        background-size: contain;
+        // File bg-4.png không tồn tại - bỏ comment khi đã thêm file vào src/assets/
+        // background-image: url("./assets/bg-4.png");
+        // background-repeat: no-repeat;
+        // background-size: contain;
       }
       .right-row {
         align-items: center;

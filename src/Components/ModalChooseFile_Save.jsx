@@ -1,55 +1,44 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import "./Modal.css";
 import "./modalChooseFile.css";
 import "../../src/page/dashboard.scss";
 import ExcelJS from "exceljs";
-import axios from "axios";
-
 import { toast } from "react-toastify";
 import ToastNotify from "./ToastNotify";
 import { styleError, styleSuccess } from "./ToastNotifyStyle";
-import { createTTExcel } from "../utils/createUserExcel";
+import { createSaveExcel } from "../utils/createSaveExcel";
 
-export default function ModalChooseFile_TT(props) {
-  const { isModalChooseFile_TT, setIsModalChooseFile_TT, getCustomer } = props;
+export default function ModalChooseFile_Save(props) {
+  const { isModalChooseFile_Save, setIsModalChooseFile_Save } = props;
   const [selectedFile, setSelectedFile] = useState(null);
   const [taxCode, setTaxCode] = useState("");
-  const [invoiceSeriesOverride, setInvoiceSeriesOverride] = useState("");
-  const [useApiV1, setUseApiV1] = useState(false);
-  // Thêm state để theo dõi trạng thái đang xử lý
   const [isProcessing, setIsProcessing] = useState(false);
+  /** 'draft' = Tạo nháp (Save), 'sign' = Tạo ký (SaveSign). Mặc định: draft */
+  const [createMode, setCreateMode] = useState("draft");
 
   const toggleModal = () => {
-    // Chỉ cho phép đóng modal khi không đang xử lý
     if (isProcessing) return;
-
-    setIsModalChooseFile_TT(false);
+    setIsModalChooseFile_Save(false);
     setSelectedFile(null);
     setTaxCode("");
-    setInvoiceSeriesOverride("");
-    setUseApiV1(false);
-    setIsProcessing(false); // Reset trạng thái xử lý
+    setCreateMode("draft");
+    setIsProcessing(false);
   };
 
-  if (isModalChooseFile_TT) {
+  if (isModalChooseFile_Save) {
     document.body.classList.add("active-modal");
   } else {
     document.body.classList.remove("active-modal");
   }
 
   const handleFileChange = (e) => {
-    // Không cho phép thay đổi file khi đang xử lý
     if (isProcessing) return;
-
     const file = e.target.files[0];
     setSelectedFile(file);
-    console.log(file);
   };
 
   const handleImportExcel = () => {
-    // Ngăn chặn gọi API nhiều lần
     if (isProcessing) return;
-
     if (!taxCode.trim()) {
       toast.error(
         <ToastNotify status={-1} message="Vui lòng nhập mã số thuế!" />,
@@ -57,7 +46,6 @@ export default function ModalChooseFile_TT(props) {
       );
       return;
     }
-
     if (!selectedFile) {
       toast.error(
         <ToastNotify status={-1} message="Bạn chưa chọn file excel!" />,
@@ -66,10 +54,7 @@ export default function ModalChooseFile_TT(props) {
       return;
     }
 
-    // Bắt đầu xử lý
     setIsProcessing(true);
-
-    // Hiển thị thông báo đang xử lý
     toast.info(
       <ToastNotify status={0} message="Đang xử lý dữ liệu, vui lòng chờ..." />,
       { autoClose: false }
@@ -83,54 +68,40 @@ export default function ModalChooseFile_TT(props) {
       workbook.xlsx.load(data).then(() => {
         const worksheet = workbook.getWorksheet(1);
         const importedData = [];
-
         worksheet.eachRow((row, rowNumber) => {
           if (rowNumber !== 1) {
             const rowData = row.values.slice(1);
             importedData.push(rowData);
           }
         });
-        console.log("Dữ liệu từ file Excel:", importedData);
 
-        // Sau khi đã lấy được mảng từ Excel, gọi hàm processUserArray
         if (importedData.length > 0) {
-          // Gọi hàm createUserExcel với mảng importedData
-
-          createTTExcel(
-            taxCode,
-            importedData,
-            invoiceSeriesOverride.trim(),
-            useApiV1
-          )
+          createSaveExcel(taxCode, importedData, { mode: createMode })
             .then(() => {
-              toast.dismiss(); // Đóng toast đang xử lý
-              // Hiển thị toast thành công khi import xong
+              toast.dismiss();
               toast.success(
-                <ToastNotify status={1} message="Dữ liệu đã được cập nhật !" />,
+                <ToastNotify
+                  status={1}
+                  message="Tạo mới hóa đơn thành công!"
+                />,
                 { style: styleSuccess }
               );
-
-              // Đóng modal sau khi thành công
-              setIsModalChooseFile_TT(false);
+              setIsModalChooseFile_Save(false);
             })
             .catch((error) => {
-              toast.dismiss(); // Đóng toast đang xử lý
+              toast.dismiss();
               toast.error(
                 <ToastNotify status={-1} message={`Lỗi: ${error.message}`} />,
                 { style: styleError }
               );
             })
-            .finally(() => {
-              // Kết thúc xử lý
-              setIsProcessing(false);
-            });
+            .finally(() => setIsProcessing(false));
         } else {
           toast.dismiss();
           toast.error(
             <ToastNotify status={-1} message="Không có dữ liệu để xử lý!" />,
             { style: styleError }
           );
-          // Kết thúc xử lý
           setIsProcessing(false);
         }
       });
@@ -139,14 +110,12 @@ export default function ModalChooseFile_TT(props) {
     reader.readAsArrayBuffer(selectedFile);
   };
 
-  const handleExportCustomer = () => {
-    // Không cho phép export khi đang xử lý
+  const handleExportTemplate = () => {
     if (isProcessing) return;
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("users");
 
-    // Thêm tiêu đề cột
     const columns = [
       "Ký hiệu (*)",
       "Số hoá đơn gốc",
@@ -168,9 +137,6 @@ export default function ModalChooseFile_TT(props) {
       "Tên người mua",
       "Địa chỉ",
       "Mã số thuế",
-      "CCCD",
-      "Tuổi vàng",
-      //bachkhoa
       "Mã đối tượng",
       "Khoa",
       "Hệ đào tạo",
@@ -184,7 +150,7 @@ export default function ModalChooseFile_TT(props) {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "Template_thay_the.xlsx";
+      a.download = "Template_tao_moi.xlsx";
       a.click();
       window.URL.revokeObjectURL(url);
     });
@@ -192,7 +158,7 @@ export default function ModalChooseFile_TT(props) {
 
   return (
     <>
-      {isModalChooseFile_TT && (
+      {isModalChooseFile_Save && (
         <div className="modal">
           <div onClick={toggleModal} className="overlay"></div>
           <div className="modal-content-change">
@@ -213,7 +179,7 @@ export default function ModalChooseFile_TT(props) {
                     marginTop: "0.5rem",
                   }}
                 >
-                  Excel Thay thế hàng loạt
+                  Excel Tạo mới hóa đơn
                 </span>
                 <div className="close-modal" onClick={toggleModal}>
                   <i
@@ -242,53 +208,50 @@ export default function ModalChooseFile_TT(props) {
 
                 <div className="row">
                   <div className="block col" style={{ flex: 1 }}>
-                    <label className="block lbl-txt" htmlFor="">
-                      Ký hiệu để lấy hoá đơn gốc (tuỳ chọn)
-                    </label>
-                    <input
-                      type="text"
-                      className="input-customer"
-                      value={invoiceSeriesOverride}
-                      onChange={(e) => setInvoiceSeriesOverride(e.target.value)}
-                      placeholder="Nhập ký hiệu thực tế của hóa đơn gốc nếu khác trong file..."
-                      disabled={isProcessing}
-                    />
-                    <small style={{ color: "#888" }}>
-                      Ký hiệu này chỉ dùng để tìm hóa đơn gốc. Ký hiệu tạo hóa
-                      đơn thay thế vẫn lấy từ file Excel.
-                    </small>
-                  </div>
-                </div>
-
-                <div className="row">
-                  <div className="block col" style={{ flex: 1 }}>
-                    <label className="block lbl-txt" htmlFor="">
-                      Phiên bản API
-                    </label>
+                    <label className="block lbl-txt">Loại tạo hóa đơn</label>
                     <div
                       style={{
                         display: "flex",
+                        gap: "16px",
                         alignItems: "center",
-                        gap: "8px",
+                        marginBottom: "8px",
                       }}
                     >
-                      <input
-                        type="checkbox"
-                        id="use-api-v1-toggle"
-                        checked={useApiV1}
-                        onChange={(e) => setUseApiV1(e.target.checked)}
-                        disabled={isProcessing}
-                      />
                       <label
-                        htmlFor="use-api-v1-toggle"
-                        style={{ margin: 0, cursor: "pointer" }}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          cursor: "pointer",
+                        }}
                       >
-                        Sử dụng API 1.0 (GetInvoices - lấy hoadon68_id)
+                        <input
+                          type="radio"
+                          name="createMode"
+                          value="draft"
+                          checked={createMode === "draft"}
+                          onChange={() => setCreateMode("draft")}
+                          disabled={isProcessing}
+                        />
+                        <span style={{ marginLeft: "6px" }}>Tạo nháp</span>
+                      </label>
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="createMode"
+                          value="sign"
+                          checked={createMode === "sign"}
+                          onChange={() => setCreateMode("sign")}
+                          disabled={isProcessing}
+                        />
+                        <span style={{ marginLeft: "6px" }}>Tạo ký</span>
                       </label>
                     </div>
-                    <small style={{ color: "#888" }}>
-                      Bỏ chọn để dùng API 2.0 (GetInfoInvoice - mặc định)
-                    </small>
                   </div>
                 </div>
 
@@ -304,6 +267,10 @@ export default function ModalChooseFile_TT(props) {
                       onChange={handleFileChange}
                       disabled={isProcessing}
                     />
+                    <small style={{ color: "#888" }}>
+                      Dùng cùng mẫu với Thay thế. File mẫu:
+                      Template_tao_moi.xlsx
+                    </small>
                   </div>
                 </div>
 
@@ -318,7 +285,7 @@ export default function ModalChooseFile_TT(props) {
                 >
                   <div
                     className="btn-template col"
-                    onClick={handleExportCustomer}
+                    onClick={handleExportTemplate}
                     style={{
                       opacity: isProcessing ? 0.5 : 1,
                       cursor: isProcessing ? "not-allowed" : "pointer",

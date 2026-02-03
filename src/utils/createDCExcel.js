@@ -1,12 +1,14 @@
 import CreateDC from "./createDC";
 import formatDate_DC from "./formatDate";
 import GetInfoInvoice from "./GetInfoInvoice";
+import GetInvoices from "./GetInvoices";
 
 export async function createDCExcel(
   taxCode,
   dataArray,
   overrideInvoiceSeries = "",
-  isExternalSystem = false
+  isExternalSystem = false,
+  useApiV1 = false
 ) {
   // Nhóm dữ liệu theo so_benh_an và inv_invoiceSeries (key: "so_benh_an|inv_invoiceSeries")
   // Cấu trúc Excel: 0 Ký hiệu, 1 Số hoá đơn gốc, 2 Ngày hoá đơn, 3 STT (bỏ qua), 4 Mã hàng, ...
@@ -31,6 +33,9 @@ export async function createDCExcel(
       inv_buyerAddressLine, // 16: Địa chỉ
       inv_buyerTaxCode, // 17: Mã số thuế
       inv_buyerLegalName, // 18: Tên đơn vị
+      ma_dt,
+      khoa,
+      HeDaoTao,
     ] = item;
 
     const groupKey = `${so_benh_an}|${inv_invoiceSeries}`;
@@ -48,9 +53,12 @@ export async function createDCExcel(
         inv_buyerAddressLine,
         inv_buyerTaxCode,
         inv_buyerLegalName,
-        inv_paymentMethodName: "TM/CK",
+        inv_paymentMethodName: "Thu qua NH",
         inv_currencyCode: "VND",
         inv_exchangeRate: 1,
+        ma_dt,
+        khoa,
+        HeDaoTao,
         //dieu chinh tu he thong khac
         // isOtherSystem: true,
         // relatedInvoiceProperty: 2,
@@ -108,13 +116,20 @@ export async function createDCExcel(
 
     try {
       if (!isExternalSystem) {
-        const invoiceInfo = await GetInfoInvoice(
-          taxCode,
-          invoice.so_benh_an,
-          seriesToGetInvoice
-        );
+        // Sử dụng API 1.0 hoặc 2.0 tùy theo option
+        const invoiceInfo = useApiV1
+          ? await GetInvoices(taxCode, invoice.so_benh_an, seriesToGetInvoice)
+          : await GetInfoInvoice(
+              taxCode,
+              invoice.so_benh_an,
+              seriesToGetInvoice
+            );
 
-        if (!invoiceInfo.success || !invoiceInfo.inv_invoiceAuth_id) {
+        // API 1.0 trả về hoadon68_id, API 2.0 trả về inv_invoiceAuth_id
+        const invoiceId =
+          invoiceInfo.hoadon68_id || invoiceInfo.inv_invoiceAuth_id;
+
+        if (!invoiceInfo.success || !invoiceId) {
           console.error(
             `❌ Không thể lấy thông tin hóa đơn cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
           );
@@ -127,9 +142,13 @@ export async function createDCExcel(
           continue;
         }
 
-        invoice.inv_InvoiceAuth_id = invoiceInfo.inv_invoiceAuth_id;
+        invoice.inv_InvoiceAuth_id = invoiceId;
         console.log(
-          `✅ Đã lấy được inv_InvoiceAuth_id: ${invoice.inv_InvoiceAuth_id} cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
+          `✅ Đã lấy được inv_InvoiceAuth_id: ${
+            invoice.inv_InvoiceAuth_id
+          } cho ${invoice.so_benh_an} - ${seriesToGetInvoice} (API ${
+            useApiV1 ? "1.0" : "2.0"
+          })`
         );
       } else {
         console.log(

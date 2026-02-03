@@ -16,6 +16,7 @@ export default function ModalChooseFile_DC(props) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [taxCode, setTaxCode] = useState("");
   const [invoiceSeriesOverride, setInvoiceSeriesOverride] = useState("");
+  const [useApiV1, setUseApiV1] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExternalSystem, setIsExternalSystem] = useState(false);
 
@@ -25,6 +26,7 @@ export default function ModalChooseFile_DC(props) {
     setSelectedFile(null);
     setTaxCode("");
     setInvoiceSeriesOverride("");
+    setUseApiV1(false);
     setIsExternalSystem(false);
     setIsProcessing(false);
   };
@@ -86,7 +88,8 @@ export default function ModalChooseFile_DC(props) {
               taxCode,
               importedData,
               invoiceSeriesOverride.trim(),
-              isExternalSystem
+              isExternalSystem,
+              useApiV1
             )
               .then(() => {
                 // Hiển thị toast thành công khi import xong
@@ -300,6 +303,38 @@ export default function ModalChooseFile_DC(props) {
                     <small style={{ color: "#888" }}>
                       Khi bật, hệ thống bỏ qua bước gọi API lấy ID và dùng dữ
                       liệu sẵn có từ file Excel.
+                    </small>
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="block col" style={{ flex: 1 }}>
+                    <label className="block lbl-txt" htmlFor="">
+                      Phiên bản API
+                    </label>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        id="use-api-v1-toggle-dc"
+                        checked={useApiV1}
+                        onChange={(e) => setUseApiV1(e.target.checked)}
+                        disabled={isProcessing || isExternalSystem}
+                      />
+                      <label
+                        htmlFor="use-api-v1-toggle-dc"
+                        style={{ margin: 0, cursor: "pointer" }}
+                      >
+                        Sử dụng API 1.0 (GetInvoices - lấy hoadon68_id)
+                      </label>
+                    </div>
+                    <small style={{ color: "#888" }}>
+                      Bỏ chọn để dùng API 2.0 (GetInfoInvoice - mặc định). Chỉ
+                      áp dụng khi không bật "Điều chỉnh từ hệ thống khác".
                     </small>
                   </div>
                 </div>

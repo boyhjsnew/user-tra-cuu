@@ -1,11 +1,13 @@
 import CreateTT from "./createUser";
 import formatDate_DC from "./formatDate";
 import GetInfoInvoice from "./GetInfoInvoice";
+import GetInvoices from "./GetInvoices";
 
 export async function createTTExcel(
   taxCode,
   dataArray,
-  overrideInvoiceSeries = ""
+  overrideInvoiceSeries = "",
+  useApiV1 = false
 ) {
   console.log("🚀 Bắt đầu xử lý với taxCode:", taxCode);
   console.log("📊 Số lượng dòng dữ liệu:", dataArray.length);
@@ -30,6 +32,8 @@ export async function createTTExcel(
       inv_unitName,
       inv_quantity,
       inv_unitPrice,
+      inv_discountPercentage,
+      inv_discountAmount,
       inv_TotalAmountWithoutVat,
       ma_thue,
       inv_vatAmount,
@@ -39,6 +43,11 @@ export async function createTTExcel(
       inv_buyerDisplayName,
       inv_buyerAddressLine,
       inv_buyerTaxCode,
+      cccdan, // CCCD
+      inv_purity, // Tuổi vàng
+      ma_dt, // Mã đối tượng
+      khoa, // Khoa
+      HeDaoTao, // Hệ đào tạo
     ] = item;
 
     const groupKey = `${so_benh_an}|${inv_invoiceSeries}`;
@@ -58,6 +67,12 @@ export async function createTTExcel(
         inv_buyerAddressLine,
         inv_buyerTaxCode,
         inv_paymentMethodName: "TM/CK",
+        cccdan: cccdan ?? null,
+        inv_purity: inv_purity ?? null,
+        // Bổ sung thông tin bachkhoa
+        Ma_DT: ma_dt || null, // Mã đối tượng
+        Khoa: khoa || null, // Khoa
+        HeDaoTao: HeDaoTao || null, // Hệ đào tạo
         details: [
           {
             data: [],
@@ -75,6 +90,8 @@ export async function createTTExcel(
       inv_unitCode: inv_unitName,
       inv_unitName,
       inv_unitPrice,
+      inv_discountPercentage,
+      inv_discountAmount,
       inv_quantity,
       inv_TotalAmountWithoutVat,
       inv_vatAmount,
@@ -120,16 +137,20 @@ export async function createTTExcel(
 
       try {
         // Lấy thông tin hóa đơn từ API để lấy inv_originalId
-        const invoiceInfo = await GetInfoInvoice(
-          taxCode,
-          invoice.so_benh_an,
-          seriesToGetInvoice
-        );
+        // Sử dụng API 1.0 hoặc 2.0 tùy theo option
+        const invoiceInfo = useApiV1
+          ? await GetInvoices(taxCode, invoice.so_benh_an, seriesToGetInvoice)
+          : await GetInfoInvoice(
+              taxCode,
+              invoice.so_benh_an,
+              seriesToGetInvoice
+            );
 
         if (!invoiceInfo.success) {
           console.error(
             `❌ Không thể lấy thông tin hóa đơn cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
           );
+          console.error("Response:", JSON.stringify(invoiceInfo, null, 2));
           errorInvoices.push({
             so_benh_an: invoice.so_benh_an,
             inv_invoiceSeries: seriesToGetInvoice,
@@ -139,16 +160,37 @@ export async function createTTExcel(
           continue;
         }
 
-        // Sử dụng inv_originalId từ response hoặc inv_invoiceAuth_id
-        // GetInfoInvoice trả về inv_invoiceAuth_id, có thể dùng làm inv_originalId
+        console.log(
+          `📋 Response từ API ${useApiV1 ? "1.0" : "2.0"}:`,
+          JSON.stringify(invoiceInfo, null, 2)
+        );
+
+        // Sử dụng inv_originalId từ response
+        // API 1.0 trả về hoadon68_id, API 2.0 trả về inv_invoiceAuth_id
         invoice.inv_originalId =
           invoiceInfo.data?.inv_originalId ||
+          invoiceInfo.data?.hoadon68_id ||
           invoiceInfo.data?.inv_invoiceAuth_id ||
+          invoiceInfo.hoadon68_id ||
           invoiceInfo.inv_invoiceAuth_id;
+
+        console.log(`🔍 Đang tìm inv_originalId:`, {
+          "invoiceInfo.data?.inv_originalId": invoiceInfo.data?.inv_originalId,
+          "invoiceInfo.data?.hoadon68_id": invoiceInfo.data?.hoadon68_id,
+          "invoiceInfo.data?.inv_invoiceAuth_id":
+            invoiceInfo.data?.inv_invoiceAuth_id,
+          "invoiceInfo.hoadon68_id": invoiceInfo.hoadon68_id,
+          "invoiceInfo.inv_invoiceAuth_id": invoiceInfo.inv_invoiceAuth_id,
+          "Kết quả": invoice.inv_originalId,
+        });
 
         if (!invoice.inv_originalId) {
           console.error(
             `❌ Không tìm thấy inv_originalId cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
+          );
+          console.error(
+            "Full invoiceInfo:",
+            JSON.stringify(invoiceInfo, null, 2)
           );
           errorInvoices.push({
             so_benh_an: invoice.so_benh_an,
@@ -169,14 +211,23 @@ export async function createTTExcel(
         );
 
         const payload = { data: [invoice] };
+        console.log(
+          "📦 Payload để gửi API ThayThe:",
+          JSON.stringify(payload, null, 2)
+        );
 
         // Thêm timeout cho mỗi request
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Request timeout")), 30000)
         );
 
+        console.log("🚀 Bắt đầu gọi API ThayThe...");
         const responsePromise = CreateTT(taxCode, payload);
         const response = await Promise.race([responsePromise, timeoutPromise]);
+        console.log(
+          "📥 Response từ API ThayThe:",
+          JSON.stringify(response, null, 2)
+        );
 
         if (response && response.data && response.data.code === "00") {
           console.log(`✅ Tạo hóa đơn thành công cho ${invoice.sovb}`);

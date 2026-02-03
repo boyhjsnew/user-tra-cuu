@@ -20,6 +20,7 @@ import { styleError, styleSuccess } from "../../Components/ToastNotifyStyle";
 import ToastNotify from "../../Components/ToastNotify";
 import ModalChooseFile_DC from "../../Components/ModalChooseFile_DC";
 import ModalChooseFile_TT from "../../Components/ModalChooseFile_TT";
+import ModalChooseFile_Save from "../../Components/ModalChooseFile_Save";
 
 const Customer = () => {
   //hidden scroll
@@ -53,6 +54,7 @@ const Customer = () => {
   const [isModalChooseFile, setIsModalChooseFile] = useState(false);
   const [isModalChooseFile_DC, setIsModalChooseFile_DC] = useState(false);
   const [isModalChooseFile_TT, setIsModalChooseFile_TT] = useState(false);
+  const [isModalChooseFile_Save, setIsModalChooseFile_Save] = useState(false);
   const [taxCode, setTaxCode] = useState("");
   const [listKH, setListKH] = useState([]);
   const [isCreateUser, setIsCreateUser] = useState(false);
@@ -344,6 +346,10 @@ const Customer = () => {
             isModalChooseFile_TT={isModalChooseFile_TT}
             setIsModalChooseFile_TT={setIsModalChooseFile_TT}
           />
+          <ModalChooseFile_Save
+            isModalChooseFile_Save={isModalChooseFile_Save}
+            setIsModalChooseFile_Save={setIsModalChooseFile_Save}
+          />
           <div className="col-12">
             <MaterialReactTable
               muiTablePaperProps={{
@@ -458,6 +464,20 @@ const Customer = () => {
                     ></span>
                     <span style={{ paddingLeft: "5px" }}>
                       Excel thay thế hàng loạt
+                    </span>
+                  </Button>
+                  <Button
+                    className="btn_import"
+                    onClick={() =>
+                      setIsModalChooseFile_Save(!isModalChooseFile_Save)
+                    }
+                  >
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-file-import"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>
+                      Excel tạo mới hóa đơn
                     </span>
                   </Button>
                   <Button
