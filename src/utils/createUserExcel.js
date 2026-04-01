@@ -7,7 +7,7 @@ export async function createTTExcel(
   taxCode,
   dataArray,
   overrideInvoiceSeries = "",
-  useApiV1 = false
+  useApiV1 = false,
 ) {
   console.log("🚀 Bắt đầu xử lý với taxCode:", taxCode);
   console.log("📊 Số lượng dòng dữ liệu:", dataArray.length);
@@ -24,7 +24,8 @@ export async function createTTExcel(
   const groupedData = dataArray.reduce((acc, item) => {
     const [
       inv_invoiceSeries,
-      so_benh_an,
+      inv_invoiceNumber, // Số hóa đơn gốc dùng để lấy hóa đơn cần thay thế
+      so_benh_an, // Số đơn hàng map vào biến so_benh_an
       inv_invoiceIssuedDate, // Bỏ qua inv_originalId - sẽ lấy từ API
       ,
       inv_itemCode,
@@ -50,7 +51,7 @@ export async function createTTExcel(
       HeDaoTao, // Hệ đào tạo
     ] = item;
 
-    const groupKey = `${so_benh_an}|${inv_invoiceSeries}`;
+    const groupKey = `${inv_invoiceNumber}|${inv_invoiceSeries}`;
 
     if (!acc[groupKey]) {
       acc[groupKey] = {
@@ -58,6 +59,7 @@ export async function createTTExcel(
         ngayvb: formatDate_DC(inv_invoiceIssuedDate),
         sovb: `DC_${so_benh_an}`,
         inv_invoiceSeries,
+        inv_invoiceNumber,
         so_benh_an,
         inv_invoiceIssuedDate: formatDate_DC(inv_invoiceIssuedDate),
         inv_currencyCode: "VND",
@@ -85,7 +87,7 @@ export async function createTTExcel(
 
     acc[groupKey].details[0].data.push({
       stt_rec0: currentSTT,
-      ma: inv_itemCode,
+      inv_itemCode: inv_itemCode,
       inv_itemName,
       inv_unitCode: inv_unitName,
       inv_unitName,
@@ -114,8 +116,8 @@ export async function createTTExcel(
     const batch = invoices.slice(i, i + BATCH_SIZE);
     console.log(
       ` Xử lý batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
-        invoices.length / BATCH_SIZE
-      )}`
+        invoices.length / BATCH_SIZE,
+      )}`,
     );
 
     for (const invoice of batch) {
@@ -125,34 +127,40 @@ export async function createTTExcel(
       // Ký hiệu để tạo hóa đơn thay thế: luôn dùng từ Excel
       const seriesToCreateTT = invoice.inv_invoiceSeries;
 
-      console.log(`🔍 Đang xử lý hóa đơn: số bệnh án=${invoice.so_benh_an}`);
+      console.log(
+        `🔍 Đang xử lý hóa đơn: số hóa đơn gốc=${invoice.inv_invoiceNumber}, số đơn hàng=${invoice.so_benh_an}`,
+      );
       console.log(
         `   📥 Ký hiệu để lấy hóa đơn: "${seriesToGetInvoice}" ${
           overrideInvoiceSeries ? "(từ form)" : "(từ Excel)"
-        }`
+        }`,
       );
       console.log(
-        `   📤 Ký hiệu để tạo hóa đơn thay thế: "${seriesToCreateTT}" (từ Excel)`
+        `   📤 Ký hiệu để tạo hóa đơn thay thế: "${seriesToCreateTT}" (từ Excel)`,
       );
 
       try {
         // Lấy thông tin hóa đơn từ API để lấy inv_originalId
         // Sử dụng API 1.0 hoặc 2.0 tùy theo option
         const invoiceInfo = useApiV1
-          ? await GetInvoices(taxCode, invoice.so_benh_an, seriesToGetInvoice)
+          ? await GetInvoices(
+              taxCode,
+              invoice.inv_invoiceNumber,
+              seriesToGetInvoice,
+            )
           : await GetInfoInvoice(
               taxCode,
-              invoice.so_benh_an,
-              seriesToGetInvoice
+              invoice.inv_invoiceNumber,
+              seriesToGetInvoice,
             );
 
         if (!invoiceInfo.success) {
           console.error(
-            `❌ Không thể lấy thông tin hóa đơn cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
+            `❌ Không thể lấy thông tin hóa đơn cho ${invoice.inv_invoiceNumber} - ${seriesToGetInvoice}`,
           );
           console.error("Response:", JSON.stringify(invoiceInfo, null, 2));
           errorInvoices.push({
-            so_benh_an: invoice.so_benh_an,
+            so_benh_an: invoice.inv_invoiceNumber,
             inv_invoiceSeries: seriesToGetInvoice,
             message:
               invoiceInfo.message || "Không tìm thấy hóa đơn để thay thế",
@@ -162,7 +170,7 @@ export async function createTTExcel(
 
         console.log(
           `📋 Response từ API ${useApiV1 ? "1.0" : "2.0"}:`,
-          JSON.stringify(invoiceInfo, null, 2)
+          JSON.stringify(invoiceInfo, null, 2),
         );
 
         // Sử dụng inv_originalId từ response
@@ -186,14 +194,14 @@ export async function createTTExcel(
 
         if (!invoice.inv_originalId) {
           console.error(
-            `❌ Không tìm thấy inv_originalId cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
+            `❌ Không tìm thấy inv_originalId cho ${invoice.inv_invoiceNumber} - ${seriesToGetInvoice}`,
           );
           console.error(
             "Full invoiceInfo:",
-            JSON.stringify(invoiceInfo, null, 2)
+            JSON.stringify(invoiceInfo, null, 2),
           );
           errorInvoices.push({
-            so_benh_an: invoice.so_benh_an,
+            so_benh_an: invoice.inv_invoiceNumber,
             inv_invoiceSeries: seriesToGetInvoice,
             message: "Không tìm thấy ID hóa đơn gốc",
           });
@@ -201,24 +209,24 @@ export async function createTTExcel(
         }
 
         console.log(
-          `✅ Đã lấy được inv_originalId: ${invoice.inv_originalId} cho ${invoice.so_benh_an} - ${seriesToGetInvoice}`
+          `✅ Đã lấy được inv_originalId: ${invoice.inv_originalId} cho ${invoice.inv_invoiceNumber} - ${seriesToGetInvoice}`,
         );
 
         // Đảm bảo ký hiệu trong invoice là ký hiệu từ Excel (để tạo hóa đơn thay thế)
         invoice.inv_invoiceSeries = seriesToCreateTT;
         console.log(
-          `📤 Ký hiệu sẽ dùng khi tạo hóa đơn thay thế: "${seriesToCreateTT}" (từ Excel)`
+          `📤 Ký hiệu sẽ dùng khi tạo hóa đơn thay thế: "${seriesToCreateTT}" (từ Excel)`,
         );
 
         const payload = { data: [invoice] };
         console.log(
           "📦 Payload để gửi API ThayThe:",
-          JSON.stringify(payload, null, 2)
+          JSON.stringify(payload, null, 2),
         );
 
         // Thêm timeout cho mỗi request
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Request timeout")), 30000)
+          setTimeout(() => reject(new Error("Request timeout")), 30000),
         );
 
         console.log("🚀 Bắt đầu gọi API ThayThe...");
@@ -226,7 +234,7 @@ export async function createTTExcel(
         const response = await Promise.race([responsePromise, timeoutPromise]);
         console.log(
           "📥 Response từ API ThayThe:",
-          JSON.stringify(response, null, 2)
+          JSON.stringify(response, null, 2),
         );
 
         if (response && response.data && response.data.code === "00") {
@@ -242,7 +250,7 @@ export async function createTTExcel(
       } catch (error) {
         console.error(
           `⚠️ Lỗi khi tạo hóa đơn cho ${invoice.so_benh_an} - ${seriesToCreateTT}:`,
-          error
+          error,
         );
         errorInvoices.push({
           so_benh_an: invoice.so_benh_an,
@@ -268,11 +276,11 @@ export async function createTTExcel(
       console.log(
         `- Số bệnh án: ${so_benh_an}, Ký hiệu: ${
           inv_invoiceSeries || "N/A"
-        }, Lỗi: ${message}`
+        }, Lỗi: ${message}`,
       );
     });
     throw new Error(
-      `Có ${errorInvoices.length} hóa đơn bị lỗi. Vui lòng kiểm tra console để xem chi tiết.`
+      `Có ${errorInvoices.length} hóa đơn bị lỗi. Vui lòng kiểm tra console để xem chi tiết.`,
     );
   } else {
     console.log("🎉 Tất cả hóa đơn đã được tạo thành công.");

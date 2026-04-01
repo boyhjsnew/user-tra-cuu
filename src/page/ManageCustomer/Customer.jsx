@@ -21,6 +21,9 @@ import ToastNotify from "../../Components/ToastNotify";
 import ModalChooseFile_DC from "../../Components/ModalChooseFile_DC";
 import ModalChooseFile_TT from "../../Components/ModalChooseFile_TT";
 import ModalChooseFile_Save from "../../Components/ModalChooseFile_Save";
+import ModalChooseFile_Update from "../../Components/ModalChooseFile_Update";
+import ModalCancelVatIpos from "../../Components/ModalCancelVatIpos";
+import ModalSignInvoices from "../../Components/ModalSignInvoices";
 
 const Customer = () => {
   //hidden scroll
@@ -55,6 +58,10 @@ const Customer = () => {
   const [isModalChooseFile_DC, setIsModalChooseFile_DC] = useState(false);
   const [isModalChooseFile_TT, setIsModalChooseFile_TT] = useState(false);
   const [isModalChooseFile_Save, setIsModalChooseFile_Save] = useState(false);
+  const [isModalChooseFile_Update, setIsModalChooseFile_Update] =
+    useState(false);
+  const [isModalCancelVatIpos, setIsModalCancelVatIpos] = useState(false);
+  const [isModalSignInvoices, setIsModalSignInvoices] = useState(false);
   const [taxCode, setTaxCode] = useState("");
   const [listKH, setListKH] = useState([]);
   const [isCreateUser, setIsCreateUser] = useState(false);
@@ -154,7 +161,7 @@ const Customer = () => {
                 <ToastNotify status={-1} message={result.data.error} />,
                 {
                   style: styleError,
-                }
+                },
               );
               return false;
             } else {
@@ -162,7 +169,7 @@ const Customer = () => {
                 <ToastNotify status={1} message={result.data.ok} />,
                 {
                   style: styleSuccess,
-                }
+                },
               );
               return true;
             }
@@ -350,6 +357,19 @@ const Customer = () => {
             isModalChooseFile_Save={isModalChooseFile_Save}
             setIsModalChooseFile_Save={setIsModalChooseFile_Save}
           />
+          <ModalChooseFile_Update
+            isModalChooseFile_Update={isModalChooseFile_Update}
+            setIsModalChooseFile_Update={setIsModalChooseFile_Update}
+          />
+          <ModalCancelVatIpos
+            isModalCancelVatIpos={isModalCancelVatIpos}
+            setIsModalCancelVatIpos={setIsModalCancelVatIpos}
+          />
+          <ModalSignInvoices
+            isModalSignInvoices={isModalSignInvoices}
+            setIsModalSignInvoices={setIsModalSignInvoices}
+            taxCode={taxCode}
+          />
           <div className="col-12">
             <MaterialReactTable
               muiTablePaperProps={{
@@ -454,6 +474,30 @@ const Customer = () => {
 
                   <Button
                     className="btn_import"
+                    onClick={() => setIsModalSignInvoices(!isModalSignInvoices)}
+                  >
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-pen-fancy"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>Ký hóa đơn</span>
+                  </Button>
+                  <Button
+                    className="btn_import"
+                    onClick={() =>
+                      setIsModalCancelVatIpos(!isModalCancelVatIpos)
+                    }
+                  >
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-trash"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>
+                      Huỷ hóa đơn VAT IPOS
+                    </span>
+                  </Button>
+                  <Button
+                    className="btn_import"
                     onClick={() =>
                       setIsModalChooseFile_TT(!isModalChooseFile_TT)
                     }
@@ -478,6 +522,20 @@ const Customer = () => {
                     ></span>
                     <span style={{ paddingLeft: "5px" }}>
                       Excel tạo mới hóa đơn
+                    </span>
+                  </Button>
+                  <Button
+                    className="btn_import"
+                    onClick={() =>
+                      setIsModalChooseFile_Update(!isModalChooseFile_Update)
+                    }
+                  >
+                    <span
+                      style={{ paddingRight: "5px" }}
+                      className="fa-solid fa-edit"
+                    ></span>
+                    <span style={{ paddingLeft: "5px" }}>
+                      Excel cập nhật hàng loạt
                     </span>
                   </Button>
                   <Button

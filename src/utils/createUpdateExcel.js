@@ -1,23 +1,24 @@
 import CreateSave from "./createSave";
 import formatDate_DC from "./formatDate";
+import GetInvoices from "./GetInvoices";
 
 /**
- * Import Excel tạo mới hóa đơn - dùng cùng mẫu Excel với Thay thế.
- * Không gọi GetInvoices/GetInfoInvoice, gửi thẳng API Save hoặc SaveSign.
+ * Import Excel cập nhật hóa đơn hàng loạt - dùng API Save với editMode 2 (sửa).
+ * Cùng mẫu Excel với Tạo mới / Thay thế.
  * @param {string} taxCode - Mã số thuế
  * @param {Array} dataArray - Dữ liệu từ Excel
- * @param {Object} options - { mode: 'draft' | 'sign' } - draft = tạo nháp (Save), sign = tạo ký (SaveSign). Mặc định: 'draft'
+ * @param {Object} options - { mode: 'draft' | 'sign' } - draft = nháp, sign = ký. Mặc định: 'draft'
  */
-export async function createSaveExcel(taxCode, dataArray, options = {}) {
+export async function createUpdateExcel(taxCode, dataArray, options = {}) {
   const mode = options.mode === "sign" ? "sign" : "draft";
   const apiLabel = mode === "sign" ? "SaveSign" : "Save";
   console.log(
-    `🚀 [${apiLabel}] Bắt đầu xử lý tạo mới hóa đơn (${
+    `🚀 [${apiLabel}] Bắt đầu cập nhật hóa đơn (editMode 2) (${
       mode === "sign" ? "ký" : "nháp"
     }), taxCode:`,
     taxCode
   );
-  console.log("📊 [Save] Số lượng dòng dữ liệu:", dataArray.length);
+  console.log("📊 [Update] Số lượng dòng dữ liệu:", dataArray.length);
 
   const groupedData = dataArray.reduce((acc, item) => {
     const [
@@ -52,6 +53,7 @@ export async function createSaveExcel(taxCode, dataArray, options = {}) {
       acc[groupKey] = {
         inv_invoiceSeries,
         so_benh_an,
+        inv_invoiceNumber: so_benh_an,
         inv_invoiceIssuedDate: formatDate_DC(inv_invoiceIssuedDate),
         inv_currencyCode: "VND",
         inv_exchangeRate: 1,
@@ -92,21 +94,47 @@ export async function createSaveExcel(taxCode, dataArray, options = {}) {
   const invoices = Object.values(groupedData);
   const errorInvoices = [];
 
-  console.log("📋 [Save] Số hóa đơn cần tạo:", invoices.length);
+  console.log("📋 [Update] Số hóa đơn cần cập nhật:", invoices.length);
 
   const BATCH_SIZE = 10;
   for (let i = 0; i < invoices.length; i += BATCH_SIZE) {
     const batch = invoices.slice(i, i + BATCH_SIZE);
     console.log(
-      `[Save] Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
+      `[Update] Batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(
         invoices.length / BATCH_SIZE
       )}`
     );
 
     for (const invoice of batch) {
       try {
-        const payload = { data: [invoice], editMode: 1 };
-        console.log("[Save] Payload:", JSON.stringify(payload, null, 2));
+        const getRes = await GetInvoices(
+          taxCode,
+          invoice.so_benh_an,
+          invoice.inv_invoiceSeries
+        );
+        if (!getRes.success || !getRes.data) {
+          errorInvoices.push({
+            so_benh_an: invoice.so_benh_an,
+            inv_invoiceSeries: invoice.inv_invoiceSeries,
+            message: getRes.message || "Không lấy được thông tin hóa đơn (keyApi)",
+          });
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          continue;
+        }
+        const keyApi = getRes.data.keyApi || getRes.data.key_api || null;
+        if (!keyApi) {
+          errorInvoices.push({
+            so_benh_an: invoice.so_benh_an,
+            inv_invoiceSeries: invoice.inv_invoiceSeries,
+            message: "API không trả về keyApi",
+          });
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          continue;
+        }
+        const invoiceWithKey = { ...invoice, keyApi };
+
+        const payload = { data: [invoiceWithKey], editMode: 2 };
+        console.log("[Update] Payload:", JSON.stringify(payload, null, 2));
 
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error("Request timeout")), 30000)
@@ -116,7 +144,7 @@ export async function createSaveExcel(taxCode, dataArray, options = {}) {
 
         if (response && response.data && response.data.code === "00") {
           console.log(
-            `✅ [Save] Tạo hóa đơn thành công: ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}`
+            `✅ [Update] Cập nhật hóa đơn thành công: ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}`
           );
         } else {
           errorInvoices.push({
@@ -127,7 +155,7 @@ export async function createSaveExcel(taxCode, dataArray, options = {}) {
         }
       } catch (error) {
         console.error(
-          `⚠️ [Save] Lỗi ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}:`,
+          `⚠️ [Update] Lỗi ${invoice.so_benh_an} - ${invoice.inv_invoiceSeries}:`,
           error
         );
         errorInvoices.push({
@@ -148,7 +176,7 @@ export async function createSaveExcel(taxCode, dataArray, options = {}) {
   if (errorInvoices.length > 0) {
     errorInvoices.forEach(({ so_benh_an, inv_invoiceSeries, message }) => {
       console.log(
-        `[Save] Lỗi - ${so_benh_an}, ${inv_invoiceSeries}: ${message}`
+        `[Update] Lỗi - ${so_benh_an}, ${inv_invoiceSeries}: ${message}`
       );
     });
     throw new Error(
@@ -156,5 +184,5 @@ export async function createSaveExcel(taxCode, dataArray, options = {}) {
     );
   }
 
-  console.log("🎉 [Save] Tất cả hóa đơn đã được tạo thành công.");
+  console.log("🎉 [Update] Tất cả hóa đơn đã được cập nhật thành công.");
 }

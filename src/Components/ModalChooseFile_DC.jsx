@@ -48,7 +48,7 @@ export default function ModalChooseFile_DC(props) {
     if (!taxCode.trim()) {
       toast.error(
         <ToastNotify status={-1} message="Vui lòng nhập mã số thuế!" />,
-        { style: styleError }
+        { style: styleError },
       );
       return;
     }
@@ -56,7 +56,7 @@ export default function ModalChooseFile_DC(props) {
     if (!selectedFile) {
       toast.error(
         <ToastNotify status={-1} message="Bạn chưa chọn file excel!" />,
-        { style: styleError }
+        { style: styleError },
       );
       return;
     }
@@ -89,7 +89,7 @@ export default function ModalChooseFile_DC(props) {
               importedData,
               invoiceSeriesOverride.trim(),
               isExternalSystem,
-              useApiV1
+              useApiV1,
             )
               .then(() => {
                 // Hiển thị toast thành công khi import xong
@@ -98,7 +98,7 @@ export default function ModalChooseFile_DC(props) {
                     status={1}
                     message="Dữ liệu đã được cập nhật !"
                   />,
-                  { style: styleSuccess }
+                  { style: styleSuccess },
                 );
 
                 // Đóng modal sau khi thành công
@@ -110,7 +110,7 @@ export default function ModalChooseFile_DC(props) {
                     status={-1}
                     message="Lỗi trong quá trình import!"
                   />,
-                  { style: styleError }
+                  { style: styleError },
                 );
               })
               .finally(() => {
@@ -119,7 +119,7 @@ export default function ModalChooseFile_DC(props) {
           } else {
             toast.error(
               <ToastNotify status={-1} message="Không có dữ liệu để xử lý!" />,
-              { style: styleError }
+              { style: styleError },
             );
             setIsProcessing(false);
           }
@@ -131,7 +131,7 @@ export default function ModalChooseFile_DC(props) {
               status={-1}
               message="Không thể đọc file Excel. Vui lòng thử lại!"
             />,
-            { style: styleError }
+            { style: styleError },
           );
           setIsProcessing(false);
         });
@@ -143,7 +143,7 @@ export default function ModalChooseFile_DC(props) {
           status={-1}
           message="Không thể đọc file. Vui lòng thử lại với file khác!"
         />,
-        { style: styleError }
+        { style: styleError },
       );
       setIsProcessing(false);
     };
