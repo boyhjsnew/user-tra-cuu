@@ -2,6 +2,48 @@ import CreateSave from "./createSave";
 import formatDate_DC from "./formatDate";
 import GetInvoices from "./GetInvoices";
 
+/** Giá trị ô Excel (string hoặc richText) → chuỗi, không nối thêm ngày hay ký tự khác. */
+function excelCellToString(v) {
+  if (v == null || v === "") return "";
+  if (typeof v === "object" && Array.isArray(v.richText)) {
+    return v.richText.map((p) => (p && p.text) || "").join("").trim();
+  }
+  return String(v).trim();
+}
+
+/** Lấy thông tin người mua từ body GetInfoInvoice (không dùng dữ liệu Excel nếu API đã trả). */
+function pickBuyerFieldsFromApi(apiData) {
+  if (!apiData || typeof apiData !== "object") return {};
+  const first = (...vals) =>
+    vals.find((x) => x != null && String(x).trim() !== "");
+  const out = {};
+  const legal = first(
+    apiData.inv_buyerLegalName,
+    apiData.Inv_BuyerLegalName,
+    apiData.inv_BuyerLegalName
+  );
+  const display = first(
+    apiData.inv_buyerDisplayName,
+    apiData.Inv_BuyerDisplayName,
+    apiData.inv_BuyerDisplayName
+  );
+  const addr = first(
+    apiData.inv_buyerAddressLine,
+    apiData.Inv_BuyerAddressLine,
+    apiData.inv_BuyerAddressLine
+  );
+  const tax = first(
+    apiData.inv_buyerTaxCode,
+    apiData.Inv_BuyerTaxCode,
+    apiData.inv_BuyerTaxCode
+  );
+  if (legal != null) out.inv_buyerLegalName = String(legal).trim();
+  if (display != null) out.inv_buyerDisplayName = String(display).trim();
+  if (addr != null) out.inv_buyerAddressLine = String(addr).trim();
+  if (tax != null) out.inv_buyerTaxCode = String(tax).trim();
+  return out;
+}
+
 /**
  * Import Excel cập nhật hóa đơn hàng loạt - dùng API Save với editMode 2 (sửa).
  * Cùng mẫu Excel với Tạo mới / Thay thế.
@@ -57,10 +99,10 @@ export async function createUpdateExcel(taxCode, dataArray, options = {}) {
         inv_invoiceIssuedDate: formatDate_DC(inv_invoiceIssuedDate),
         inv_currencyCode: "VND",
         inv_exchangeRate: 1,
-        inv_buyerLegalName,
-        inv_buyerDisplayName,
-        inv_buyerAddressLine,
-        inv_buyerTaxCode,
+        inv_buyerLegalName: excelCellToString(inv_buyerLegalName),
+        inv_buyerDisplayName: excelCellToString(inv_buyerDisplayName),
+        inv_buyerAddressLine: excelCellToString(inv_buyerAddressLine),
+        inv_buyerTaxCode: excelCellToString(inv_buyerTaxCode),
         inv_paymentMethodName: "Tiền mặt",
         Ma_DT: ma_dt || null,
         Khoa: khoa || null,
@@ -107,9 +149,26 @@ export async function createUpdateExcel(taxCode, dataArray, options = {}) {
 
     for (const invoice of batch) {
       try {
+        // GET theo tên người mua (đúng giá trị cột, không nối ngày HĐ hay trường khác).
+        const numberForGet =
+          excelCellToString(invoice.inv_buyerDisplayName) ||
+          excelCellToString(invoice.so_benh_an);
+        if (!numberForGet) {
+          errorInvoices.push({
+            so_benh_an: invoice.so_benh_an,
+            inv_invoiceSeries: invoice.inv_invoiceSeries,
+            message:
+              "Thiếu tên người mua (và số HĐ) để gọi Get — không thể lấy keyApi.",
+          });
+          await new Promise((resolve) => setTimeout(resolve, 100));
+          continue;
+        }
+        console.log(
+          `[Update] GetInfoInvoice number="${numberForGet}" (ưu tiên tên NM), seri="${invoice.inv_invoiceSeries}"`
+        );
         const getRes = await GetInvoices(
           taxCode,
-          invoice.so_benh_an,
+          numberForGet,
           invoice.inv_invoiceSeries
         );
         if (!getRes.success || !getRes.data) {
@@ -131,7 +190,8 @@ export async function createUpdateExcel(taxCode, dataArray, options = {}) {
           await new Promise((resolve) => setTimeout(resolve, 100));
           continue;
         }
-        const invoiceWithKey = { ...invoice, keyApi };
+        const buyerFromApi = pickBuyerFieldsFromApi(getRes.data);
+        const invoiceWithKey = { ...invoice, keyApi, ...buyerFromApi };
 
         const payload = { data: [invoiceWithKey], editMode: 2 };
         console.log("[Update] Payload:", JSON.stringify(payload, null, 2));

@@ -1,8 +1,8 @@
 async function GetInvoices(taxCode, so_benh_an, inv_invoiceSeries) {
   // Xử lý taxcode để loại bỏ dấu gạch ngang và khoảng trắng
   const TX = taxCode.replace(/[-\s]/g, "");
-  // API 1.0 yêu cầu POST với query parameters number và seri
-  const url = `https://${TX}.minvoice.app/api/InvoiceApi78/GetInfoInvoice?number=${so_benh_an}&seri=${inv_invoiceSeries}`;
+  // API 1.0: domain minvoice.com.vn (khác API 2.0 dùng minvoice.app trong GetInfoInvoice.js)
+  const url = `https://${TX}.minvoice.com.vn/api/InvoiceApi78/GetInfoInvoice?number=${so_benh_an}&seri=${inv_invoiceSeries}`;
 
   try {
     console.log("📤 Gọi API GetInvoices với URL:", url);

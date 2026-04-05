@@ -48,6 +48,8 @@ export async function createDCExcel(
         inv_invoiceSeries, // Sử dụng ký hiệu từ Excel
         inv_InvoiceAuth_id: null,
         so_benh_an,
+        // API Điều chỉnh (.com.vn) thường yêu cầu sovb (mẫu JSON chạy được có trường này)
+        sovb: so_benh_an != null && so_benh_an !== "" ? String(so_benh_an) : "",
         inv_invoiceIssuedDate: formatDate_DC(inv_invoiceIssuedDate),
         inv_buyerDisplayName,
         inv_buyerAddressLine,
@@ -71,23 +73,35 @@ export async function createDCExcel(
       };
     }
 
-    const currentSTT = (acc[groupKey].data.length + 1)
-      .toString()
-      .padStart(0, "0");
+    const lineNo = acc[groupKey].data.length + 1;
+    const stt = String(lineNo).padStart(4, "0");
+
+    // Cấu trúc dòng hàng align với JSON mẫu API chấp nhận: stt + ma (không chỉ stt_rec0)
+    const ma_thue_out =
+      ma_thue === "" || ma_thue === null || ma_thue === undefined
+        ? ""
+        : typeof ma_thue === "number" && ma_thue < 0
+          ? String(ma_thue)
+          : String(ma_thue);
 
     acc[groupKey].data.push({
-      stt_rec0: currentSTT,
-      inv_itemCode,
+      stt,
+      ma: inv_itemCode != null && inv_itemCode !== "" ? String(inv_itemCode) : "",
       inv_itemName,
       inv_unitCode: inv_unitName,
       inv_unitName,
-      inv_unitPrice,
-      inv_discountAmount,
       inv_quantity,
-      inv_TotalAmountWithoutVat,
+      inv_unitPrice,
+      inv_discountPercentage: 0,
+      inv_discountAmount: inv_discountAmount ?? 0,
+      inv_TotalAmountWithoutVat: inv_TotalAmountWithoutVat ?? 0,
+      ma_thue: ma_thue_out,
       inv_vatAmount,
       inv_TotalAmount,
-      ma_thue,
+      inv_promotion: false,
+      // Giữ thêm field app đang dùng (một số bản API vẫn đọc)
+      stt_rec0: String(lineNo),
+      inv_itemCode,
       tchat,
     });
 
